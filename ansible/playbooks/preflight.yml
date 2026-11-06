@@ -1,0 +1,39 @@
+---
+- name: Comprobar acceso y estado sin modificar los nodos
+  hosts: raspberry
+  gather_facts: true
+  tasks:
+    - name: Mostrar identidad y sistema
+      ansible.builtin.debug:
+        msg:
+          - "Conexión: {{ ansible_user }}; usuario efectivo: {{ ansible_facts.user_id }}"
+          - "Sistema: {{ ansible_facts.distribution }} {{ ansible_facts.distribution_version }}; arquitectura: {{ ansible_facts.architecture }}"
+          - "Núcleo: {{ ansible_facts.kernel }}"
+
+    - name: Consultar contenedores de AdGuard Home
+      ansible.builtin.command:
+        argv:
+          - docker
+          - ps
+          - --all
+          - --filter
+          - ancestor=adguard/adguardhome
+      register: adguard_status
+      changed_when: false
+      failed_when: false
+      when: inventory_hostname in groups['dns_nodes']
+
+    - name: Consultar puertos DNS en escucha
+      ansible.builtin.command: ss -lnut
+      register: dns_listeners
+      changed_when: false
+      failed_when: false
+      when: inventory_hostname in groups['dns_nodes']
+
+    - name: Mostrar diagnóstico de DNS
+      ansible.builtin.debug:
+        msg:
+          - "Docker (código {{ adguard_status.rc }}): {{ adguard_status.stdout or adguard_status.stderr }}"
+          - "Puertos en escucha: {{ dns_listeners.stdout_lines | default([]) | select('search', ':53\\b') | list }}"
+          - "Si el filtro no encuentra el contenedor, comprueba el nombre de la imagen y los permisos de Docker."
+      when: inventory_hostname in groups['dns_nodes']

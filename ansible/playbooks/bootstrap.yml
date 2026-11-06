@@ -1,0 +1,16 @@
+---
+- name: Configurar base de las Raspberry
+  hosts: raspberry:!dns_nodes
+  become: true
+  serial: 1
+  pre_tasks:
+    - name: Exigir aprobación y sistema compatible
+      ansible.builtin.assert:
+        that:
+          - confirm_node_changes | default(false) | bool
+          - ansible_facts.os_family == 'Debian'
+          - ansible_user != 'CHANGE_ME'
+        fail_msg: "Ejecuta y revisa preflight; obtén aprobación y pasa confirm_node_changes=true."
+  roles:
+    - common
+    - security

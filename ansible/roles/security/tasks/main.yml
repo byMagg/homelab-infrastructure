@@ -1,0 +1,18 @@
+---
+- name: Comprobar que se ha verificado la clave SSH
+  ansible.builtin.assert:
+    that:
+      - security_ssh_key_verified | bool
+    fail_msg: "Comprueba primero el acceso con clave y conserva una sesión de recuperación."
+  when: security_ssh_hardening_enabled | bool
+
+- name: Aplicar política SSH validada
+  ansible.builtin.template:
+    src: ssh-hardening.conf.j2
+    dest: /etc/ssh/sshd_config.d/99-homelab.conf
+    owner: root
+    group: root
+    mode: '0644'
+    validate: /usr/sbin/sshd -t -f %s
+  notify: Recargar SSH
+  when: security_ssh_hardening_enabled | bool

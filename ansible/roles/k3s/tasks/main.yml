@@ -1,0 +1,11 @@
+---
+- name: Instalar dependencias básicas para K3s
+  ansible.builtin.apt:
+    name: "{{ k3s_prerequisite_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Mostrar versión prevista
+  ansible.builtin.debug:
+    msg: "K3s {{ k3s_version }} se instalará en una fase posterior."

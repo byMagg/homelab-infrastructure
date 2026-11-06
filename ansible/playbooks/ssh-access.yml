@@ -1,0 +1,35 @@
+---
+- name: Gestionar las claves SSH del usuario del inventario
+  hosts: raspberry
+  gather_facts: false
+  serial: 1
+  any_errors_fatal: true
+  tasks:
+    - name: Comprobar que se ha seleccionado un único nodo y se ha revisado el cambio
+      ansible.builtin.assert:
+        that:
+          - ansible_play_hosts_all | length == 1
+          - ansible_user != 'CHANGE_ME'
+          - ssh_access_keys | length > 0
+          - ansible_check_mode or (confirm_node_changes | default(false) | bool)
+        fail_msg: "Selecciona un nodo con --limit, configura sus claves públicas y aprueba la aplicación."
+
+    - name: Validar la lista de claves antes de aplicarla
+      ansible.builtin.assert:
+        that:
+          - item.state in ['present', 'absent']
+          - item.key is match('^ssh-ed25519 [A-Za-z0-9+/]+={0,2}( [^\\r\\n]+)?$')
+        fail_msg: "Indica una clave pública Ed25519 completa y un estado present o absent."
+      loop: "{{ ssh_access_keys }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Añadir o retirar las claves indicadas
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ item.key }}"
+        state: "{{ item.state }}"
+        exclusive: false
+      loop: "{{ ssh_access_keys | sort(attribute='state', reverse=true) }}"
+      loop_control:
+        label: "{{ item.name }}"

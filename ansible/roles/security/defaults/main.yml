@@ -1,0 +1,3 @@
+---
+security_ssh_hardening_enabled: false
+security_ssh_key_verified: false

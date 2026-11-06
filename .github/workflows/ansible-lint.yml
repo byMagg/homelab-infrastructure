@@ -1,0 +1,21 @@
+---
+name: Ansible lint
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+      - name: Ejecutar ansible-lint
+        uses: ansible/ansible-lint@v26.10.1
+        with:
+          python_version: '3.12'
+          requirements_file: ansible/requirements.yml

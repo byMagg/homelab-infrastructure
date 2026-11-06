@@ -1,0 +1,7 @@
+---
+# Versión prevista para la fase de instalación; este rol aún no instala K3s.
+k3s_version: v1.37.2+k3s1
+k3s_prerequisite_packages:
+  - ca-certificates
+  - curl
+  - iptables

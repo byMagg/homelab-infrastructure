@@ -1,0 +1,7 @@
+---
+- name: Instalar herramientas básicas
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600

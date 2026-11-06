@@ -1,0 +1,27 @@
+---
+- name: Actualizar nodos que no prestan el DNS doméstico
+  hosts: raspberry:!dns_nodes
+  become: true
+  serial: 1
+  pre_tasks:
+    - name: Exigir aprobación y sistema compatible
+      ansible.builtin.assert:
+        that:
+          - confirm_node_changes | default(false) | bool
+          - ansible_facts.os_family == 'Debian'
+        fail_msg: "Revisa preflight y solicita aprobación antes de actualizar."
+  tasks:
+    - name: Actualizar paquetes
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+        upgrade: safe
+
+    - name: Comprobar si hay un reinicio pendiente
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_required
+
+    - name: Informar de reinicio pendiente
+      ansible.builtin.debug:
+        msg: "Reinicio pendiente: {{ reboot_required.stat.exists }}. Planifícalo manualmente."

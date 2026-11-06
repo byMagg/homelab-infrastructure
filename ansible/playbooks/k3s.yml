@@ -1,0 +1,15 @@
+---
+- name: Preparar los nodos para K3s
+  hosts: raspberry:!dns_nodes
+  become: true
+  serial: 1
+  pre_tasks:
+    - name: Exigir aprobación y plataforma compatible
+      ansible.builtin.assert:
+        that:
+          - confirm_node_changes | default(false) | bool
+          - ansible_facts.os_family == 'Debian'
+          - ansible_facts.architecture == 'aarch64'
+        fail_msg: "Revisa preflight, confirma ARM64 y solicita aprobación antes de preparar K3s."
+  roles:
+    - k3s

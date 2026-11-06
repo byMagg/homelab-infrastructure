@@ -1,0 +1,7 @@
+---
+common_packages:
+  - ca-certificates
+  - curl
+  - git
+  - htop
+  - jq

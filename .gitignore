@@ -1,0 +1,15 @@
+.venv/
+.ansible/
+.cache/
+__pycache__/
+*.retry
+.env
+.env.*
+!*.example
+*.vault
+*.vault.yml
+vault-password*
+*.pem
+*.key
+id_*
+ansible/inventory/hosts.local.yml

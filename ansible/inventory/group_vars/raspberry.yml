@@ -1,0 +1,9 @@
+---
+# Guarda aquí únicamente claves públicas completas (una línea por clave).
+# Para retirar una clave administrada, conserva su línea y cambia su estado a absent.
+ssh_access_keys: []
+# Ejemplo:
+# ssh_access_keys:
+#   - name: Portátil
+#     state: present
+#     key: 'ssh-ed25519 <clave-pública> portátil'

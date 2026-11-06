@@ -1,0 +1,5 @@
+---
+ssh_access_keys:
+  - name: dani-homelab
+    state: present
+    key: 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGu/RHTyPPuaxfpCifeiCiW9fM2ePH92rQJDzaTRQeYm dani-homelab'
