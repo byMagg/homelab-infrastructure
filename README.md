@@ -100,7 +100,8 @@ scripts/       Utilidades de bootstrap, backup y restore
   verificados.
 - Fase 2 completada: Argo CD `v3.6.1` sincroniza `whoami` desde el repo
   privado con deploy key de solo lectura; Ingress en
-  `whoami.homelab.home.arpa` y entradas en el hosts de WSL y Windows.
+  `whoami.homelab.home.arpa` y UI en `argocd.homelab.home.arpa`, con entradas
+  en el hosts de WSL y Windows.
 - cluster2 pendiente de la SD.
 - Siguiente: Fase 3 (DNS local con dnsmasq).
 

@@ -76,19 +76,21 @@ cluster1.
 
 ## DNS local
 
-Entrada en WSL (`/etc/hosts`):
+Entradas en WSL (`/etc/hosts`):
 
 ```
 192.168.1.100 whoami.homelab.home.arpa
+192.168.1.100 argocd.homelab.home.arpa
 ```
 
 Windows (`C:\Windows\System32\drivers\etc\hosts`, requiere administrador):
 
 ```
 192.168.1.100 whoami.homelab.home.arpa
+192.168.1.100 argocd.homelab.home.arpa
 ```
 
-La entrada apunta solo a cluster0. Si cluster0 cae, se cambia a
+Las entradas apuntan solo a cluster0. Si cluster0 cae, se cambian a
 `192.168.1.101` o se añade un VIP con kube-vip en otra fase.
 
 ## Verificación
@@ -104,11 +106,18 @@ Traefik.
 
 ## Acceso a la UI de Argo
 
+`argocd-server` sirve HTTPS y redirige HTTP a HTTPS en el mismo puerto, así que
+Traefik no puede terminar TLS sin tocar el servidor. Para el homelab se arranca
+en modo HTTP y Traefik enruta por el puerto 80:
+
 ```bash
-kubectl -n argocd port-forward svc/argocd-server 8080:443
+kubectl -n argocd patch deploy argocd-server --type=json \
+  -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--insecure"}]'
+kubectl apply -f kubernetes/argocd/ingress.yaml
 ```
 
-Abrir `https://localhost:8080` con usuario `admin`. La contraseña inicial:
+Abrir `http://argocd.homelab.home.arpa` con usuario `admin`. La contraseña
+inicial:
 
 ```bash
 kubectl -n argocd get secret argocd-initial-admin-secret \
@@ -116,7 +125,15 @@ kubectl -n argocd get secret argocd-initial-admin-secret \
 ```
 
 Conviene cambiarla desde la UI (User Info → Update Password); el secreto
-inicial se puede borrar después.
+inicial se puede borrar después. El `--insecure` es temporal: cuando se
+instale cert-manager, Traefik terminará TLS y se podrá quitar.
+
+Como alternativa sin Ingress:
+
+```bash
+kubectl -n argocd port-forward svc/argocd-server 8080:80
+# http://localhost:8080
+```
 
 ## Gotchas
 
@@ -126,7 +143,7 @@ inicial se puede borrar después.
 
 2. **La API de Argo no acepta basic auth.** Para probar el login:
    ```bash
-   curl -sk -X POST https://127.0.0.1:8080/api/v1/session \
+   curl -s -X POST http://argocd.homelab.home.arpa/api/v1/session \
      -H 'Content-Type: application/json' \
      -d '{"username":"admin","password":"..."}'
    ```
@@ -142,3 +159,7 @@ inicial se puede borrar después.
 
 5. **ServiceLB publica en todas las IPs de los nodos.** El Ingress muestra
    `192.168.1.100,192.168.1.101`; el DNS local apunta a `.100` por simplicidad.
+
+6. **`--insecure` no está en `install.yaml`.** Si se reaplica el manifiesto de
+   Argo CD, el deployment vuelve a arrancar en modo TLS y el Ingress deja de
+   funcionar. Hay que repetir el `kubectl patch` después de reinstalar.
