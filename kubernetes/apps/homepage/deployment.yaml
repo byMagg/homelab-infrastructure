@@ -15,6 +15,11 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: homepage
+      annotations:
+        # Fuerza un rollout cuando cambia config.yaml (los subPath no se
+        # refrescan en caliente). Actualiza el hash junto con el ConfigMap:
+        #   sha256sum kubernetes/apps/homepage/config.yaml
+        homelab.io/config-hash: "db511444ba769397372841d842405273311b4065cef1941d38672551fd141ecc"
     spec:
       serviceAccountName: homepage
       securityContext:

@@ -101,7 +101,9 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `bookmarks`, `kubernetes`, `docker`, `proxmox`, `custom.css`, `custom.js`);
   si falta uno, el contenedor muere con `EROFS: read-only file system`. También
   valida la cabecera `Host` (`HOMEPAGE_ALLOWED_HOSTS`): incluye el host del
-  Ingress **y** `$(MY_POD_IP):3000` para las probes.
+  Ingress **y** `$(MY_POD_IP):3000` para las probes. Los montajes `subPath` no
+  se refrescan en caliente: al tocar `config.yaml` actualiza la anotación
+  `homelab.io/config-hash` del Deployment (`sha256sum` del fichero).
 
 ## Estado y convenciones
 
