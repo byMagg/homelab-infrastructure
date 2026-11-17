@@ -17,6 +17,10 @@ spec:
       labels:
         app.kubernetes.io/name: adguard
     spec:
+      # El DNS se publica en 192.168.1.100 con externalTrafficPolicy Local:
+      # el pod debe correr en cluster0 para que ServiceLB anuncie esa IP.
+      nodeSelector:
+        kubernetes.io/hostname: cluster0
       containers:
         - name: adguard
           image: adguard/adguardhome:v0.107.80

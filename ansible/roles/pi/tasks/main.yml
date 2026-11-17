@@ -1,29 +1,39 @@
 ---
-- name: Comprobar controlador memory de cgroups
-  ansible.builtin.command:
-    cmd: grep -qw memory /sys/fs/cgroup/cgroup.controllers
-  changed_when: false
-  tags: [pi, verify]
+# --- cgroups: el firmware inyecta cgroup_disable=memory ---
 
-- name: Comprobar fix de cgroups en cmdline
-  ansible.builtin.command:
-    cmd: grep -q cgroup_enable=memory /proc/cmdline
-  changed_when: false
-  tags: [pi, verify]
+- name: Añadir cgroup_enable=memory a cmdline.txt
+  ansible.builtin.lineinfile:
+    path: /boot/firmware/cmdline.txt
+    regexp: '^(?!.*cgroup_enable=memory)(.*)$'
+    line: '\1 cgroup_enable=memory'
+    backrefs: true
+  tags: [pi]
 
-- name: Leer swaps activos
-  ansible.builtin.command:
-    cmd: cat /proc/swaps
-  register: pi_swaps
-  changed_when: false
-  tags: [pi, verify]
+- name: Añadir cgroup_memory=1 a cmdline.txt
+  ansible.builtin.lineinfile:
+    path: /boot/firmware/cmdline.txt
+    regexp: '^(?!.*cgroup_memory=1)(.*)$'
+    line: '\1 cgroup_memory=1'
+    backrefs: true
+  tags: [pi]
 
-- name: Verificar que no hay swap
-  ansible.builtin.assert:
-    that:
-      - pi_swaps.stdout_lines | length == 1
-    fail_msg: "Hay swap activo: {{ pi_swaps.stdout }}"
-  tags: [pi, verify]
+# --- Swap/zram: kubelet no arranca con swap activo ---
+
+- name: Crear drop-in de rpi-swap
+  ansible.builtin.file:
+    path: /etc/rpi/swap.conf.d
+    state: directory
+    mode: "0755"
+  tags: [pi]
+
+- name: Desactivar swap y zram
+  ansible.builtin.copy:
+    dest: /etc/rpi/swap.conf.d/90-disable.conf
+    content: |
+      [Main]
+      Mechanism=none
+    mode: "0644"
+  tags: [pi]
 
 - name: Copiar config.txt original (solo la primera vez)
   ansible.builtin.copy:

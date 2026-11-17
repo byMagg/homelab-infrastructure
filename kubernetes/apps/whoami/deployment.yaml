@@ -34,3 +34,16 @@ spec:
             readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 1000
+      # cluster2 (2 GB) está tainted como nodo ligero; whoami puede usarlo.
+      tolerations:
+        - key: homelab.io/role
+          operator: Equal
+          value: light
+          effect: NoSchedule
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: whoami
