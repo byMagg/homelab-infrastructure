@@ -23,6 +23,8 @@ tmp/
 # Ansible
 ansible/inventory/**/host_vars/*.vault
 ansible/.vault_pass
+ansible/collections/
+.ansible/
 
 # Terraform
 .terraform/

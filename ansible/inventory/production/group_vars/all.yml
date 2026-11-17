@@ -1,0 +1,27 @@
+---
+# Dominio interno (RFC 8375). Se puede cambiar sin tocar el resto del cluster.
+internal_domain: homelab.home.arpa
+
+# Red del homelab
+lan_cidr: 192.168.1.0/24
+lan_gateway: 192.168.1.1
+k3s_api_port: 6443
+
+# Pool de LoadBalancer (Cilium LB IPAM)
+lb_pool_start: 192.168.1.240
+lb_pool_stop: 192.168.1.250
+gateway_ip: 192.168.1.240
+
+# Versión fijada de k3s (Kubernetes 1.37.2)
+k3s_version: v1.37.2+k3s1
+
+# Rangos internos de Kubernetes
+cluster_cidr: 10.42.0.0/16
+service_cidr: 10.43.0.0/16
+
+# Swap/zram: desactivado para kubelet
+disable_swap: true
+
+# Retención de snapshots de k3s (SQLite)
+k3s_snapshot_schedule: "0 */6 * * *"
+k3s_snapshot_retention: 14
