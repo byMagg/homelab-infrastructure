@@ -1,0 +1,83 @@
+---
+- name: Comprobar controlador memory de cgroups
+  ansible.builtin.command:
+    cmd: grep -qw memory /sys/fs/cgroup/cgroup.controllers
+  changed_when: false
+  tags: [pi, verify]
+
+- name: Comprobar fix de cgroups en cmdline
+  ansible.builtin.command:
+    cmd: grep -q cgroup_enable=memory /proc/cmdline
+  changed_when: false
+  tags: [pi, verify]
+
+- name: Leer swaps activos
+  ansible.builtin.command:
+    cmd: cat /proc/swaps
+  register: pi_swaps
+  changed_when: false
+  tags: [pi, verify]
+
+- name: Verificar que no hay swap
+  ansible.builtin.assert:
+    that:
+      - pi_swaps.stdout_lines | length == 1
+    fail_msg: "Hay swap activo: {{ pi_swaps.stdout }}"
+  tags: [pi, verify]
+
+- name: Copiar config.txt original (solo la primera vez)
+  ansible.builtin.copy:
+    src: /boot/firmware/config.txt
+    dest: /boot/firmware/config.txt.orig
+    remote_src: true
+    force: false
+  tags: [pi]
+
+- name: Ajustar opciones de firmware
+  ansible.builtin.lineinfile:
+    path: /boot/firmware/config.txt
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - { regexp: '^dtparam=audio=', line: 'dtparam=audio=off' }
+    - { regexp: '^dtoverlay=vc4-kms-v3d', line: '#dtoverlay=vc4-kms-v3d' }
+    - { regexp: '^gpu_mem=', line: 'gpu_mem=16' }
+    - { regexp: '^dtparam=watchdog=', line: 'dtparam=watchdog=on' }
+    - { regexp: '^dtoverlay=disable-wifi', line: 'dtoverlay=disable-wifi' }
+    - { regexp: '^dtoverlay=disable-bt', line: 'dtoverlay=disable-bt' }
+  tags: [pi]
+
+- name: Crear drop-in de systemd
+  ansible.builtin.file:
+    path: /etc/systemd/system.conf.d
+    state: directory
+    mode: "0755"
+  tags: [pi]
+
+- name: Configurar watchdog de hardware
+  ansible.builtin.template:
+    src: watchdog.conf.j2
+    dest: /etc/systemd/system.conf.d/99-watchdog.conf
+    mode: "0644"
+  notify: reexec systemd
+  tags: [pi]
+
+- name: Comprobar firmware EEPROM
+  ansible.builtin.command:
+    cmd: rpi-eeprom-update
+  register: pi_eeprom
+  changed_when: false
+  failed_when: false
+  tags: [pi]
+
+- name: Aplicar actualización de EEPROM si está disponible
+  ansible.builtin.command:
+    cmd: rpi-eeprom-update -a
+  when: "'UPDATE AVAILABLE' in pi_eeprom.stdout"
+  register: pi_eeprom_apply
+  tags: [pi]
+
+- name: Mostrar estado de EEPROM
+  ansible.builtin.debug:
+    var: pi_eeprom.stdout_lines
+  tags: [pi]

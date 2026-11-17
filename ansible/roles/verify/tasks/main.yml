@@ -1,0 +1,78 @@
+---
+- name: Comprobar controlador memory de cgroups
+  ansible.builtin.command:
+    cmd: grep -qw memory /sys/fs/cgroup/cgroup.controllers
+  changed_when: false
+  tags: [verify]
+
+- name: Leer swaps activos
+  ansible.builtin.command:
+    cmd: cat /proc/swaps
+  register: verify_swaps
+  changed_when: false
+  tags: [verify]
+
+- name: Verificar ausencia de swap
+  ansible.builtin.assert:
+    that:
+      - verify_swaps.stdout_lines | length == 1
+  tags: [verify]
+
+- name: Leer configuración efectiva de sshd
+  ansible.builtin.command:
+    cmd: sshd -T
+  register: verify_sshd
+  changed_when: false
+  tags: [verify]
+
+- name: Verificar hardening de SSH
+  ansible.builtin.assert:
+    that:
+      - "'passwordauthentication no' in verify_sshd.stdout"
+      - "'permitrootlogin no' in verify_sshd.stdout"
+      - "'allowusers ansible' in verify_sshd.stdout"
+      - "'allowusers admin' in verify_sshd.stdout"
+  tags: [verify]
+
+- name: Estado de UFW
+  ansible.builtin.command:
+    cmd: ufw status verbose
+  register: verify_ufw
+  changed_when: false
+  tags: [verify]
+
+- name: Estado de servicios
+  ansible.builtin.command:
+    cmd: systemctl is-active {{ item }}
+  loop:
+    - ssh
+    - ufw
+    - fail2ban
+    - systemd-timesyncd
+  register: verify_services
+  changed_when: false
+  tags: [verify]
+
+- name: Comprobar watchdog
+  ansible.builtin.stat:
+    path: /dev/watchdog
+  register: verify_watchdog
+  tags: [verify]
+
+- name: Comprobar throttling
+  ansible.builtin.command:
+    cmd: vcgencmd get_throttled
+  register: verify_throttled
+  changed_when: false
+  tags: [verify]
+
+- name: Mostrar resumen
+  ansible.builtin.debug:
+    msg:
+      - "hostname: {{ inventory_hostname }}"
+      - "lineas_swap: {{ verify_swaps.stdout_lines | length }}"
+      - "ufw: {{ verify_ufw.stdout_lines[0] | default('sin salida') }}"
+      - "servicios: {{ verify_services.results | map(attribute='stdout') | list }}"
+      - "watchdog: {{ verify_watchdog.stat.exists }}"
+      - "throttled: {{ verify_throttled.stdout }}"
+  tags: [verify]

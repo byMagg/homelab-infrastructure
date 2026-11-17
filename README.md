@@ -61,8 +61,8 @@ Sin dominio público por ahora. Se usará un dominio interno:
 
 ## Fases
 
-- [ ] **Fase 0 — Base**: SO, SSH, hardening, cgroups, swap, journald, hora,
-      firewall, inventario Ansible.
+- [x] **Fase 0 — Base**: SO, SSH, hardening, cgroups, swap, journald, hora,
+      firewall, inventario Ansible. *(completada 2026-11-17)*
 - [ ] **Fase 1 — Cluster**: reset limpio de k3s, instalación fijada, Cilium,
       kubeconfig en WSL, pruebas de conectividad.
 - [ ] **Fase 2 — Red local**: DNS `homelab.home.arpa`, LB IPAM, Gateway,
@@ -86,6 +86,31 @@ scripts/       Utilidades de bootstrap, backup y restore
 ## Estado actual
 
 - Repo inicializado.
-- cluster0 y cluster1 con k3s de pruebas; se reinstalarán desde cero.
-- cluster2 pendiente de provisioning.
-- Pendiente: acceso SSH por clave desde WSL y auditoría del estado actual.
+- k3s de pruebas eliminado por completo en cluster0 y cluster1.
+- Fase 0 aplicada y verificada en cluster0 y cluster1:
+  - swap/zram desactivado y `/var/swap` eliminado;
+  - journald en memoria y coredumps desactivados;
+  - SSH solo con clave, UFW activo y fail2ban;
+  - watchdog de hardware y EEPROM actualizada;
+  - kernel con `memory` cgroup y sin throttling.
+- cluster2 pendiente de la SD.
+- Siguiente: Fase 1 (instalación limpia de k3s + Cilium).
+
+## Ejecución
+
+```bash
+# Conectividad
+.venv/bin/ansible all -m ping
+
+# Fase 0 por bloques
+.venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags base,sd,sysctl,unattended
+.venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags ssh,firewall,fail2ban
+.venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags pi
+
+# Verificación
+.venv/bin/ansible-playbook ansible/playbooks/verify.yml
+```
+
+Los mismos comandos están en el `Makefile` (`make base`, `make security`,
+`make pi`, `make verify`) si tienes `make` instalado.
+
