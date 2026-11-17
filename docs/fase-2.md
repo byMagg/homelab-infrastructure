@@ -71,8 +71,8 @@ kubectl apply -f kubernetes/argocd/whoami-app.yaml
 kubectl -n argocd get application whoami
 ```
 
-Resultado: `Synced` / `Healthy`, dos pods `whoami` repartidos entre cluster0 y
-cluster1.
+Resultado: `Synced` / `Healthy`, dos pods `whoami` repartidos entre los nodos
+que toleran el taint de cluster2 (hoy cluster1 y cluster2).
 
 ## DNS local
 

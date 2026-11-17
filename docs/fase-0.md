@@ -3,11 +3,11 @@
 Fecha: 2026-11-17
 Nodos: cluster0 (192.168.1.100), cluster1 (192.168.1.101),
 cluster2 (192.168.1.102, 2 GB)
-SO: Raspberry Pi OS Lite 64-bit (Trixie), kernel 6.18.50
+SO: Raspberry Pi OS Lite 64-bit (Trixie), kernel 6.18.60
 
 ## Objetivo
 
-Dejar los dos nodos con una base reproducible, segura y con el menor desgaste
+Dejar los tres nodos con una base reproducible, segura y con el menor desgaste
 posible de la tarjeta SD antes de instalar Kubernetes.
 
 ## Cambios aplicados

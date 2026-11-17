@@ -27,9 +27,10 @@ Se usan dos PVC porque montar el padre `/opt/adguardhome` ocultaría el binario
 de la imagen. `work` guarda estadísticas y listas; `conf` el
 `AdGuardHome.yaml`.
 
-ServiceLB publica el DNS en `192.168.1.100` y `192.168.1.101`. El puerto 53
-estaba libre en ambos nodos (`systemd-resolved` inactivo) y UFW ya lo permitía
-desde `192.168.1.0/24`.
+ServiceLB publica el DNS en la IP del nodo que ejecuta el pod. Con el
+`nodeSelector` actual siempre es `192.168.1.100`. El puerto 53 estaba libre en
+los nodos (`systemd-resolved` inactivo) y UFW ya lo permitía desde
+`192.168.1.0/24`.
 
 ## Asistente inicial
 

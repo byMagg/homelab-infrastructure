@@ -40,7 +40,7 @@ Sin dominio público por ahora. Se usa un dominio interno:
 | GitOps | Argo CD 3.6.1 | Patrón estándar; se adopta en la Fase 2 |
 | Secretos | Pendiente (Sealed Secrets y SOPS+age) | Sin secretos en claro en Git |
 | Storage | local-path (default de k3s) | Sin SSD; evita el peso de Longhorn |
-| Observabilidad | Pendiente (kube-prometheus-stack) | Fase posterior |
+| Observabilidad | Prometheus + Grafana propios | Sin Helm; manifiestos en `kubernetes/apps/observability` |
 | Backup | Pendiente (snapshots de k3s a Cloudflare R2) | RPO 6 h; bajo coste |
 | HA control-plane | No (fase futura con kube-vip) | El nodo de 2 GB no debe ser CP |
 
@@ -67,8 +67,8 @@ Sin dominio público por ahora. Se usa un dominio interno:
 
 - [x] **Fase 0 — Base**: SO, SSH, hardening, cgroups, swap, journald, hora,
       firewall, inventario Ansible. *(completada 2026-11-17)*
-- [x] **Fase 1 — Cluster**: k3s `v1.37.2+k3s1` en cluster0 y cluster1,
-      kubeconfig en WSL, verificación de nodos, DNS y Traefik.
+- [x] **Fase 1 — Cluster**: k3s `v1.37.2+k3s1` en cluster0, cluster1 y
+      cluster2, kubeconfig en WSL, verificación de nodos, DNS y Traefik.
       *(completada 2026-11-17)*
 - [x] **Fase 2 — GitOps + primera app**: Argo CD, repo privado, `whoami` e
       Ingress de Traefik. *(completada 2026-11-17)*
@@ -89,21 +89,21 @@ Sin dominio público por ahora. Se usa un dominio interno:
 ansible/       Inventario, roles y playbooks
 kubernetes/    Manifiestos y charts gestionados por Argo CD
 docs/          Arquitectura, ADRs, runbooks, postmortems
-scripts/       Utilidades de bootstrap, backup y restore
+scripts/       (planificado) Utilidades de bootstrap, backup y restore
 ```
 
 ## Estado actual
 
 - Repo privado en GitHub con remoto `origin` por SSH.
-- Fase 0 aplicada y verificada en cluster0 y cluster1:
+- Fase 0 aplicada y verificada en los tres nodos:
   - swap/zram desactivado y `/var/swap` eliminado;
   - journald en memoria y coredumps desactivados;
   - SSH solo con clave, UFW activo y fail2ban;
   - watchdog de hardware y EEPROM actualizada;
   - kernel con `memory` cgroup y sin throttling.
-- Fase 1 completada: k3s `v1.37.2+k3s1` en cluster0 (server) y cluster1
-  (agent), kubeconfig en `~/.kube/homelab.yaml`, DNS interno y Traefik
-  verificados.
+- Fase 1 completada: k3s `v1.37.2+k3s1` en cluster0 (server) y cluster1 /
+  cluster2 (agents), kubeconfig en `~/.kube/homelab.yaml`, DNS interno y
+  Traefik verificados.
 - Fase 2 completada: Argo CD `v3.6.1` sincroniza `whoami` desde el repo
   privado con deploy key de solo lectura; Ingress en
   `whoami.homelab.home.arpa` y UI en `argocd.homelab.home.arpa`, con entradas
