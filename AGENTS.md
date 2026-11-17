@@ -102,8 +102,6 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   si falta uno, el contenedor muere con `EROFS: read-only file system`. También
   valida la cabecera `Host` (`HOMEPAGE_ALLOWED_HOSTS`): incluye el host del
   Ingress **y** `$(MY_POD_IP):3000` para las probes.
-- Un Ingress creado antes que su Service queda con `Cannot create service:
-  service not found` en Traefik hasta que se reprocesa (reiniciar Traefik).
 
 ## Estado y convenciones
 
