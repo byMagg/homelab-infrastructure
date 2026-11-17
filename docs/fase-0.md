@@ -1,7 +1,8 @@
 # Fase 0 — Base y hardening
 
 Fecha: 2026-11-17
-Nodos: cluster0 (192.168.1.100), cluster1 (192.168.1.101)
+Nodos: cluster0 (192.168.1.100), cluster1 (192.168.1.101),
+cluster2 (192.168.1.102, 2 GB)
 SO: Raspberry Pi OS Lite 64-bit (Trixie), kernel 6.18.50
 
 ## Objetivo
@@ -78,3 +79,14 @@ sudo rpi-eeprom-update
 
 Resultado: sin swap, `memory` en cgroups, UFW y fail2ban activos, watchdog
 presente, EEPROM al día, sin throttling y journald en RAM.
+
+## Automatización posterior
+
+Desde la reconstrucción del 2026-11-17, el rol `pi` ya aplica los dos ajustes
+que antes se hacían a mano:
+
+- añade `cgroup_enable=memory cgroup_memory=1` a `/boot/firmware/cmdline.txt`;
+- crea `/etc/rpi/swap.conf.d/90-disable.conf` con `Mechanism=none`.
+
+El reinicio tras la Fase 0 sigue siendo obligatorio para que ambos surtan
+efecto.

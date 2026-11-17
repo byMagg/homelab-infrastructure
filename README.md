@@ -115,7 +115,12 @@ scripts/       Utilidades de bootstrap, backup y restore
 - Observabilidad: `node-exporter`, `kube-state-metrics`, Prometheus (7 días,
   PVC 5 Gi) y Grafana en `grafana.homelab.home.arpa` con el dashboard
   `Homelab - Cluster` (temperatura, CPU, RAM, disco, red, pods).
-- cluster2 pendiente de la SD.
+- cluster2 incorporado como worker ligero (2 GB), etiquetado
+  `homelab.io/role=light` y aislado con un taint `NoSchedule`; `whoami` corre
+  allí y `node-exporter` lo monitoriza.
+- Reconstrucción 2026-11-17: cluster0 y cluster2 reflasheados, Fase 0/1
+  reaplicadas, cluster1 reincorporado con el token nuevo y Argo CD + apps
+  resincronizadas.
 - Siguiente: cambiar el DNS del DHCP del router (IPv4 e IPv6) a
   `192.168.1.100` y quitar la regla NRPT de los clientes Windows.
 
@@ -123,19 +128,26 @@ scripts/       Utilidades de bootstrap, backup y restore
 
 ```bash
 # Conectividad
-.venv/bin/ansible all -m ping
+ansible all -m ping
+
+# Alta de un nodo recién flasheado (usuario `admin` de Raspberry Pi Imager)
+ansible-playbook ansible/playbooks/bootstrap.yml \
+  -e ansible_user=admin --ask-pass --ask-become-pass --limit cluster0
 
 # Fase 0 por bloques
-.venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags base,sd,sysctl,unattended
-.venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags ssh,firewall,fail2ban
-.venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags pi
+ansible-playbook ansible/playbooks/phase0.yml --tags base,sd,sysctl,unattended
+ansible-playbook ansible/playbooks/phase0.yml --tags ssh,firewall,fail2ban
+ansible-playbook ansible/playbooks/phase0.yml --tags pi
 
 # Fase 1
-.venv/bin/ansible-playbook ansible/playbooks/phase1.yml
+ansible-playbook ansible/playbooks/phase1.yml
 
 # Verificación
-.venv/bin/ansible-playbook ansible/playbooks/verify.yml
+ansible-playbook ansible/playbooks/verify.yml
 ```
+
+Si existe un virtualenv local, los mismos comandos funcionan con
+`.venv/bin/ansible` y `.venv/bin/ansible-playbook`.
 
 `kubectl` se instala en `~/.local/bin` y el kubeconfig en
 `~/.kube/homelab.yaml` (exportado desde `~/.zshrc`).

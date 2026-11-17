@@ -46,6 +46,26 @@
   changed_when: false
   when: inventory_hostname in groups['k3s_server']
 
+# cluster2 tiene 2 GB: se marca como nodo ligero y se aísla con un taint para
+# que Prometheus, Grafana o AdGuard no acaben allí.
+- name: Etiquetar nodos agentes
+  ansible.builtin.command:
+    argv: "{{ ['/usr/local/bin/k3s', 'kubectl', 'label', 'node', item, '--overwrite'] + hostvars[item].k3s_node_labels }}"
+  loop: "{{ groups['k3s_agents'] }}"
+  when:
+    - inventory_hostname in groups['k3s_server']
+    - hostvars[item].k3s_node_labels is defined
+  changed_when: false
+
+- name: Aplicar taints a nodos agentes
+  ansible.builtin.command:
+    argv: "{{ ['/usr/local/bin/k3s', 'kubectl', 'taint', 'node', item, '--overwrite'] + hostvars[item].k3s_node_taints }}"
+  loop: "{{ groups['k3s_agents'] }}"
+  when:
+    - inventory_hostname in groups['k3s_server']
+    - hostvars[item].k3s_node_taints is defined
+  changed_when: false
+
 - name: Mostrar nodos
   ansible.builtin.command:
     cmd: /usr/local/bin/k3s kubectl get nodes -o wide

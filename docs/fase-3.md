@@ -16,7 +16,8 @@ gestionada por Argo CD, con persistencia y sin tocar todavía el DNS de la LAN.
 | Pieza | Decisión |
 |---|---|
 | Réplicas | 1, estrategia `Recreate` (hay un solo escritor de configuración) |
-| Persistencia | 2 PVC `local-path`: `adguard-work` (1Gi) y `adguard-conf` (128Mi) |
+| Nodo | `nodeSelector` a cluster0: `externalTrafficPolicy: Local` solo anuncia `.100` si el pod está allí |
+| Persistencia | 2 PVC `local-path` de cluster0: `adguard-work` (1Gi) y `adguard-conf` (128Mi) |
 | DNS | Service `adguard-dns` tipo `LoadBalancer`, puerto 53 UDP/TCP |
 | UI | Service `adguard-web` + Ingress `adguard.homelab.home.arpa` |
 | Upstream | Router `192.168.1.1` o DNS público, configurado en el asistente |
@@ -56,6 +57,40 @@ doubleclick.net  -> 0.0.0.0
 ```
 
 También responde desde Windows con `nslookup example.com 192.168.1.100`.
+
+## Reinstalación con PVC nuevos
+
+Si se recrean los PVC (por ejemplo, al reconstruir el cluster), AdGuard vuelve
+al asistente en el puerto **3000**, pero los probes apuntan a 80 y kubelet lo
+reinicia en bucle. Procedimiento:
+
+1. Pausar el auto-sync de la Application y quitar los probes temporalmente:
+   ```bash
+   kubectl -n argocd patch application adguard --type merge \
+     -p '{"spec":{"syncPolicy":{"automated":null}}}'
+   kubectl -n adguard patch deploy adguard --type=json -p='[
+     {"op":"remove","path":"/spec/template/spec/containers/0/livenessProbe"},
+     {"op":"remove","path":"/spec/template/spec/containers/0/readinessProbe"}]'
+   kubectl -n adguard port-forward deploy/adguard 3000:3000
+   ```
+2. Completar el asistente por API (la contraseña no se guarda en Git):
+   ```bash
+   curl -X POST http://127.0.0.1:3000/control/install/configure \
+     -H 'Content-Type: application/json' -d '{
+       "web":{"ip":"0.0.0.0","port":80,"status":"","can_autofix":false},
+       "dns":{"ip":"0.0.0.0","port":53,"status":"","can_autofix":false},
+       "username":"admin","password":"<password>"}'
+   ```
+3. Con AdGuard ya en el puerto 80, añadir la reescritura y reactivar Argo:
+   ```bash
+   kubectl -n adguard port-forward deploy/adguard 8080:80
+   curl -u admin:<password> -X POST http://127.0.0.1:8080/control/rewrite/add \
+     -H 'Content-Type: application/json' \
+     -d '{"domain":"*.homelab.home.arpa","answer":"192.168.1.100"}'
+   kubectl -n argocd patch application adguard --type merge \
+     -p '{"spec":{"syncPolicy":{"automated":{"prune":true,"selfHeal":true}}}}'
+   ```
+   Argo vuelve a poner los probes en 80; el pod queda `Ready`.
 
 ## Gotchas
 

@@ -1,7 +1,8 @@
 # Fase 1 — Cluster k3s
 
 Fecha: 2026-11-17
-Nodos: cluster0 (192.168.1.100, server), cluster1 (192.168.1.101, agent)
+Nodos: cluster0 (192.168.1.100, server), cluster1 (192.168.1.101, agent),
+cluster2 (192.168.1.102, agent ligero de 2 GB)
 Versión: k3s `v1.37.2+k3s1` (Kubernetes 1.37.2)
 
 ## Objetivo
@@ -17,9 +18,12 @@ Playbook: `ansible/playbooks/phase1.yml` (rol `k3s`).
 
 - cluster0 se instala como server con `--tls-san 192.168.1.100` para que el
   kubeconfig funcione desde WSL sin túneles SSH.
-- cluster1 se une como agent usando el token del server.
+- cluster1 y cluster2 se unen como agents usando el token del server.
 - El playbook espera a la API en `6443` y a que todos los nodos estén `Ready`
   con `kubectl wait`.
+- Después aplica las etiquetas y taints declarados en el inventario. cluster2
+  queda como `homelab.io/role=light` con `NoSchedule`, para que Prometheus,
+  Grafana o AdGuard no caigan en sus 2 GB.
 
 No hay `/etc/rancher/k3s/config.yaml`: todo son valores por defecto salvo el
 `tls-san`.
@@ -52,11 +56,15 @@ kubectl get pods -A
 
 Resultado:
 
-- cluster0 `Ready` (control-plane) y cluster1 `Ready`, ambos `v1.37.2+k3s1`.
+- cluster0 `Ready` (control-plane), cluster1 y cluster2 `Ready`, todos
+  `v1.37.2+k3s1`.
+- cluster2 aparece con el taint `homelab.io/role=light:NoSchedule` y el label
+  `homelab.io/role=light`.
 - `coredns`, `local-path-provisioner`, `metrics-server`, `traefik` y los
   `svclb-traefik` en `Running`.
-- `traefik` recibe las dos IPs de los nodos como external IP
-  (`192.168.1.100,192.168.1.101`).
+- `traefik` recibe las IPs de los nodos como external IP
+  (`192.168.1.100,192.168.1.101`; `.102` solo si su `svclb` sigue vivo, ya que
+  el taint impide reprogramarlo).
 - `curl http://192.168.1.100` y `http://192.168.1.101` devuelven `404`, que es
   lo esperado en Traefik sin Ingress.
 - DNS interno: `nslookup kubernetes.default.svc.cluster.local` desde un pod
@@ -88,3 +96,17 @@ Resultado:
 5. **UFW ya estaba preparado.** Los puertos `6443/tcp`, `10250/tcp` y
    `8472/udp` de la Fase 0 son suficientes para k3s con flannel; no hizo falta
    cambiar el firewall.
+
+6. **Reconstruir cluster0 invalida el token de los agentes.** Si se reflashea
+   el server, cluster1 conserva la CA y el token viejos. Antes de relanzar la
+   Fase 1 hay que ejecutar en cada agent:
+   ```bash
+   sudo /usr/local/bin/k3s-agent-uninstall.sh
+   ```
+   El playbook no reinstala el agente si `/usr/local/bin/k3s` ya existe
+   (`creates`), de ahí que haya que desinstalarlo primero.
+
+7. **cluster2 no debe recibir cargas pesadas.** Su taint se aplica desde el
+   inventario (`k3s_node_taints`). `node-exporter` lo tolera (`operator:
+   Exists`), pero Prometheus, Grafana y AdGuard no, así que quedan en los
+   nodos de 4 GB.

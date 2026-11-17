@@ -72,7 +72,7 @@ targets quedan `down` aunque los pods estén `Running`.
    mientras el pod se reiniciaba. Límite actual: 768 Mi (`request` 256 Mi). Un
    `ChunkLoadError` con el asset respondiendo 200 suele ser un reinicio del pod
    a mitad de carga: recarga forzada (`Ctrl+Shift+R`).
-5. **Cardinalidad de cadvisor.** Los dos nodos generan ~67k series; la
+5. **Cardinalidad de cadvisor.** Los tres nodos generan ~79k series; la
    retención por tamaño (3 GB) evita llenar el PVC de 5 Gi. Si crece, subir
    `scrape_interval` o filtrar métricas de cadvisor.
 6. **local-path no comparte datos.** Prometheus y Grafana quedan atados al nodo
@@ -88,8 +88,10 @@ curl -s 'localhost:9090/api/v1/query?query=node_thermal_zone_temp' | jq .
 curl -I http://grafana.homelab.home.arpa
 ```
 
-Todos los targets (`prometheus`, `node-exporter` ×2, `kube-state-metrics`,
-`kubelet` ×2, `cadvisor` ×2) deben estar `up`.
+Todos los targets (`prometheus`, `node-exporter` ×3, `kube-state-metrics`,
+`kubelet` ×3, `cadvisor` ×3) deben estar `up`. `node-exporter` tolera el taint
+de cluster2 (`operator: Exists`), así que también se scrapea el nodo de 2 GB;
+Prometheus y Grafana se quedan en los nodos de 4 GB.
 
 ## Pendiente
 

@@ -10,14 +10,17 @@ Ejecuta siempre desde la raíz del repo: `ansible.cfg` usa rutas relativas
 (`roles_path`, `inventory`, `collections_path`).
 
 ```bash
-.venv/bin/ansible all -m ping
-.venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags base,sd,sysctl,unattended
-.venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags ssh,firewall,fail2ban
-.venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags pi
-.venv/bin/ansible-playbook ansible/playbooks/phase1.yml
-.venv/bin/ansible-playbook ansible/playbooks/verify.yml
+ansible all -m ping
+ansible-playbook ansible/playbooks/bootstrap.yml -e ansible_user=admin --ask-pass --ask-become-pass --limit cluster0
+ansible-playbook ansible/playbooks/phase0.yml --tags base,sd,sysctl,unattended
+ansible-playbook ansible/playbooks/phase0.yml --tags ssh,firewall,fail2ban
+ansible-playbook ansible/playbooks/phase0.yml --tags pi
+ansible-playbook ansible/playbooks/phase1.yml
+ansible-playbook ansible/playbooks/verify.yml
 ```
 
+- Ansible está instalado en el sistema (`/usr/bin/ansible`). Si existe
+  `.venv/`, los mismos comandos funcionan con `.venv/bin/...`.
 - **`make` no está instalado en el WSL del usuario**: el `Makefile` existe, pero
   usa los comandos `.venv/bin/...` directamente.
 - Las colecciones viven en `ansible/collections` (ignorado por git). Si falta
@@ -38,9 +41,13 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 
 - Automatización siempre como `ansible` (NOPASSWD sudo). `admin` es solo
   interactivo y **no** tiene sudo sin contraseña.
-- Jerarquía: `k3s_cluster` → `k3s_server` (cluster0) / `k3s_agents` (cluster1).
-- `cluster2` está comentado en `ansible/inventory/production/hosts.yml` hasta
-  que llegue su SD; para añadirlo, descomenta y ejecuta la Fase 0.
+- Jerarquía: `k3s_cluster` → `k3s_server` (cluster0) / `k3s_agents`
+  (cluster1 y cluster2).
+- Un nodo recién flasheado necesita `bootstrap.yml` como `admin` antes de
+  Ansible; crea `ansible` con la clave del portátil y sudo NOPASSWD.
+- `cluster2` (2 GB) está aislado con `homelab.io/role=light:NoSchedule`; las
+  etiquetas y taints se declaran en `hosts.yml` (`k3s_node_labels` /
+  `k3s_node_taints`) y las aplica el rol `k3s`.
 - La versión de k3s fijada está en
   `ansible/inventory/production/group_vars/all.yml` (`v1.37.2+k3s1`). El README
   puede estar desfasado; manda `group_vars`.
@@ -70,6 +77,14 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 - AdGuard Home escucha la UI en el puerto **80** del pod (se eligió en el
   asistente). Probes, `containerPort` y Service deben apuntar a 80; si apuntan
   a 3000 el pod nunca queda `Ready` y el DNS se queda sin endpoints.
+- AdGuard está fijado a cluster0 (`nodeSelector`) porque el Service usa
+  `externalTrafficPolicy: Local`: si el pod cae en cluster1, ServiceLB no
+  anuncia `192.168.1.100:53`. Sus dos PVC son `local-path` de cluster0.
+- El rol `pi` ya aplica el fix de cgroups y desactiva swap/zram (antes se
+  hacía a mano). Sigue siendo obligatorio reiniciar tras la Fase 0.
+- Al reconstruir cluster0 (server), el agente de cluster1 conserva token y CA
+  viejos: ejecutar `/usr/local/bin/k3s-agent-uninstall.sh` en cluster1 y volver
+  a lanzar la Fase 1.
 - Windows prefiere los DNS IPv6 que anuncia el router. Si `home.arpa` no
   resuelve en el portátil pero `nslookup x.homelab.home.arpa 192.168.1.100`
   responde, el problema es el cliente: añade una regla NRPT
