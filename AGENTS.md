@@ -70,6 +70,12 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 - AdGuard Home escucha la UI en el puerto **80** del pod (se eligió en el
   asistente). Probes, `containerPort` y Service deben apuntar a 80; si apuntan
   a 3000 el pod nunca queda `Ready` y el DNS se queda sin endpoints.
+- Windows prefiere los DNS IPv6 que anuncia el router. Si `home.arpa` no
+  resuelve en el portátil pero `nslookup x.homelab.home.arpa 192.168.1.100`
+  responde, el problema es el cliente: añade una regla NRPT
+  (`Add-DnsClientNrptRule -Namespace '.homelab.home.arpa' -NameServers
+  192.168.1.100`) o desactiva el DNS IPv6 del DHCP. WSL2 hereda el resolver de
+  Windows.
 
 ## Estado y convenciones
 

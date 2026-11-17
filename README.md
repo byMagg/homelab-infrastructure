@@ -22,9 +22,10 @@ Sin dominio público por ahora. Se usa un dominio interno:
 - Zona: `homelab.home.arpa` (RFC 8375, reservado para redes domésticas).
 - Fase inicial: entradas en `/etc/hosts` de WSL y Windows apuntando a
   `192.168.1.100`.
-- DNS y bloqueo: AdGuard Home en el cluster (`192.168.1.100:53`).
-- Pendiente: reescritura `*.homelab.home.arpa` en AdGuard y cambiar el DNS de
-  la LAN.
+- DNS y bloqueo: AdGuard Home en el cluster (`192.168.1.100:53`), con
+  reescritura `*.homelab.home.arpa` → `192.168.1.100` ya activa.
+- Pendiente: cambiar el DNS (IPv4 **e IPv6**) del DHCP del router a
+  `192.168.1.100`.
 - TLS: pendiente. Se añadirá cert-manager con CA interna cuando haga falta.
 
 ## Decisiones de arquitectura
@@ -71,8 +72,8 @@ Sin dominio público por ahora. Se usa un dominio interno:
       *(completada 2026-11-17)*
 - [x] **Fase 2 — GitOps + primera app**: Argo CD, repo privado, `whoami` e
       Ingress de Traefik. *(completada 2026-11-17)*
-- [ ] **Fase 3 — DNS y bloqueo**: AdGuard Home desplegado en el cluster;
-      pendiente la reescritura wildcard y el cutover del DNS de la LAN.
+- [ ] **Fase 3 — DNS y bloqueo**: AdGuard Home desplegado en el cluster con
+      reescritura wildcard; pendiente el cutover del DNS de la LAN.
       *(desplegado 2026-11-17)*
 - [ ] **Fase 4 — TLS y secretos**: cert-manager con CA interna, Sealed Secrets.
 - [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana, alertas a ntfy.
@@ -107,11 +108,12 @@ scripts/       Utilidades de bootstrap, backup y restore
   `whoami.homelab.home.arpa` y UI en `argocd.homelab.home.arpa`, con entradas
   en el hosts de WSL y Windows.
 - Fase 3 desplegada: AdGuard Home `v0.107.80` en el namespace `adguard`, DNS
-  en `192.168.1.100:53` vía ServiceLB y UI en
+  en `192.168.1.100:53` vía ServiceLB, reescritura
+  `*.homelab.home.arpa` → `192.168.1.100` y UI en
   `adguard.homelab.home.arpa`. Bloqueo verificado de forma directa.
 - cluster2 pendiente de la SD.
-- Siguiente: reescritura `*.homelab.home.arpa` en AdGuard y cambiar el DNS
-  del router a `192.168.1.100`.
+- Siguiente: cambiar el DNS del DHCP del router (IPv4 e IPv6) a
+  `192.168.1.100` y quitar la regla NRPT de los clientes Windows.
 
 ## Ejecución
 
