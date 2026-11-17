@@ -118,6 +118,10 @@ scripts/       (planificado) Utilidades de bootstrap, backup y restore
 - cluster2 incorporado como worker ligero (2 GB), etiquetado
   `homelab.io/role=light` y aislado con un taint `NoSchedule`; `whoami` corre
   allí y `node-exporter` lo monitoriza.
+- Homepage `v2.8.0` en el namespace `homepage` como panel de inicio en
+  `homepage.homelab.home.arpa`: agrupa Argo CD, Grafana, Prometheus, AdGuard y
+  whoami con monitorización HTTP, y muestra CPU/RAM del cluster vía el widget
+  de Kubernetes (ServiceAccount de solo lectura).
 - Reconstrucción 2026-11-17: cluster0 y cluster2 reflasheados, Fase 0/1
   reaplicadas, cluster1 reincorporado con el token nuevo y Argo CD + apps
   resincronizadas.

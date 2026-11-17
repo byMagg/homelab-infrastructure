@@ -96,6 +96,14 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `:8080/healthz`, no en telemetría; Grafana usa rootfs de solo lectura con
   `GF_PLUGINS_PREINSTALL_DISABLED=true`. Prometheus scrapea la IP del nodo, así
   que UFW abre `9100` y `10250` desde `cluster_cidr`/`service_cidr`.
+- Homepage con `readOnlyRootFilesystem: true` necesita montar **todos** los
+  ficheros de `/app/src/skeleton` (`settings`, `services`, `widgets`,
+  `bookmarks`, `kubernetes`, `docker`, `proxmox`, `custom.css`, `custom.js`);
+  si falta uno, el contenedor muere con `EROFS: read-only file system`. También
+  valida la cabecera `Host` (`HOMEPAGE_ALLOWED_HOSTS`): incluye el host del
+  Ingress **y** `$(MY_POD_IP):3000` para las probes.
+- Un Ingress creado antes que su Service queda con `Cannot create service:
+  service not found` en Traefik hasta que se reprocesa (reiniciar Traefik).
 
 ## Estado y convenciones
 
@@ -108,6 +116,9 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `kube-state-metrics` en `kubernetes/apps/observability` (namespace
   `observability`); dashboard en `grafana.homelab.home.arpa` (admin por defecto
   `admin`/`admin`, acceso anónimo de solo lectura). Ver `docs/fase-5.md`.
+- Panel de inicio: Homepage `v2.8.0` en `kubernetes/apps/homepage` (namespace
+  `homepage`), en `homepage.homelab.home.arpa`; enlaza Argo CD, Grafana,
+  Prometheus, AdGuard y whoami.
 - Kubeconfig local en `~/.kube/homelab.yaml`; `kubectl` en `~/.local/bin`.
 - `kubernetes/` existe; `scripts/` sigue siendo planificado.
 - Argo CD lee el repo con la deploy key del Secret `repo-homelab` (namespace

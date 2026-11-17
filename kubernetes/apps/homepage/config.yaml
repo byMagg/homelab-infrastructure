@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage-config
+  namespace: homepage
+  labels:
+    app.kubernetes.io/name: homepage
+data:
+  settings.yaml: |
+    title: Homelab
+    theme: dark
+    color: slate
+    headerStyle: clean
+    statusStyle: dot
+    layout:
+      Cluster:
+        style: row
+        columns: 3
+      Observabilidad:
+        style: row
+        columns: 2
+      Red:
+        style: row
+        columns: 1
+      Demo:
+        style: row
+        columns: 1
+  kubernetes.yaml: |
+    mode: cluster
+  # Homepage copia estos ficheros desde la imagen si no existen; con el rootfs
+  # de solo lectura hay que montarlos todos, aunque estén vacíos.
+  docker.yaml: ""
+  proxmox.yaml: ""
+  widgets.yaml: |
+    - greeting:
+        text_size: xl
+        text: Homelab
+    - datetime:
+        text_size: xl
+        format:
+          dateStyle: long
+          timeStyle: short
+    - kubernetes:
+        cluster:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+          label: cluster
+        nodes:
+          show: true
+          cpu: true
+          memory: true
+          showLabel: true
+  services.yaml: |
+    - Cluster:
+        - Argo CD:
+            icon: argo-cd.png
+            href: https://argocd.homelab.home.arpa
+            description: GitOps y estado de las apps
+            siteMonitor: http://argocd-server.argocd.svc.cluster.local
+        - whoami:
+            icon: si-traefik
+            href: http://whoami.homelab.home.arpa
+            description: Demo de Traefik con 2 réplicas
+            siteMonitor: http://whoami.demo.svc.cluster.local
+
+    - Observabilidad:
+        - Grafana:
+            icon: grafana.png
+            href: http://grafana.homelab.home.arpa
+            description: Dashboards del cluster
+            siteMonitor: http://grafana.observability.svc.cluster.local:3000/api/health
+        - Prometheus:
+            icon: prometheus.png
+            href: http://grafana.homelab.home.arpa
+            description: Métricas (solo ClusterIP)
+            siteMonitor: http://prometheus.observability.svc.cluster.local:9090/-/healthy
+
+    - Red:
+        - AdGuard Home:
+            icon: adguard-home.png
+            href: http://adguard.homelab.home.arpa
+            description: DNS y bloqueo de anuncios
+            siteMonitor: http://adguard-web.adguard.svc.cluster.local
+
+  bookmarks.yaml: |
+    - Proyecto:
+        - Repositorio en GitHub:
+            - abbr: GH
+              href: https://github.com/byMagg/homelab-infrastructure
+    - Documentación:
+        - Homepage:
+            - abbr: HP
+              href: https://gethomepage.dev/
+        - Argo CD:
+            - abbr: AC
+              href: https://argo-cd.readthedocs.io/
+  custom.js: ""
+  custom.css: ""
