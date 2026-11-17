@@ -30,6 +30,8 @@ No hay `/etc/rancher/k3s/config.yaml`: todo son valores por defecto salvo el
 mkdir -p ~/.local/bin ~/.kube
 curl -fsSLo ~/.local/bin/kubectl \
   https://dl.k8s.io/release/v1.37.2/bin/linux/amd64/kubectl
+curl -fsSL https://dl.k8s.io/release/v1.37.2/bin/linux/amd64/kubectl.sha256 \
+  | (cd ~/.local/bin && sha256sum -c -)
 chmod 0755 ~/.local/bin/kubectl
 
 ssh ansible@192.168.1.100 'sudo cat /etc/rancher/k3s/k3s.yaml' \
@@ -38,8 +40,8 @@ sed -i 's#https://127.0.0.1:6443#https://192.168.1.100:6443#' ~/.kube/homelab.ya
 chmod 0600 ~/.kube/homelab.yaml
 ```
 
-`~/.zshrc` añade `~/.local/bin` al `PATH` y exporta `KUBECONFIG` a
-`~/.kube/homelab.yaml`.
+`~/.zshrc` y `~/.bashrc` añaden `~/.local/bin` al `PATH` y exportan
+`KUBECONFIG` a `~/.kube/homelab.yaml`.
 
 ## Verificación
 
