@@ -7,6 +7,9 @@ metadata:
     app.kubernetes.io/name: adguard
 spec:
   type: LoadBalancer
+  # Conserva la IP de origen: sin esto kube-proxy hace SNAT y AdGuard ve
+  # todas las consultas como 10.42.0.1 (sin estadísticas por cliente).
+  externalTrafficPolicy: Local
   selector:
     app.kubernetes.io/name: adguard
   ports:
