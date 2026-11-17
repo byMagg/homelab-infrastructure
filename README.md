@@ -22,7 +22,9 @@ Sin dominio público por ahora. Se usa un dominio interno:
 - Zona: `homelab.home.arpa` (RFC 8375, reservado para redes domésticas).
 - Fase inicial: entradas en `/etc/hosts` de WSL y Windows apuntando a
   `192.168.1.100`.
-- Más adelante: dnsmasq con wildcard `*.homelab.home.arpa`.
+- DNS y bloqueo: AdGuard Home en el cluster (`192.168.1.100:53`).
+- Pendiente: reescritura `*.homelab.home.arpa` en AdGuard y cambiar el DNS de
+  la LAN.
 - TLS: pendiente. Se añadirá cert-manager con CA interna cuando haga falta.
 
 ## Decisiones de arquitectura
@@ -69,7 +71,9 @@ Sin dominio público por ahora. Se usa un dominio interno:
       *(completada 2026-11-17)*
 - [x] **Fase 2 — GitOps + primera app**: Argo CD, repo privado, `whoami` e
       Ingress de Traefik. *(completada 2026-11-17)*
-- [ ] **Fase 3 — DNS local**: dnsmasq con wildcard `*.homelab.home.arpa`.
+- [ ] **Fase 3 — DNS y bloqueo**: AdGuard Home desplegado en el cluster;
+      pendiente la reescritura wildcard y el cutover del DNS de la LAN.
+      *(desplegado 2026-11-17)*
 - [ ] **Fase 4 — TLS y secretos**: cert-manager con CA interna, Sealed Secrets.
 - [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana, alertas a ntfy.
 - [ ] **Fase 6 — App demo + CI/CD**: multi-arch, Trivy, SBOM, Cosign, Argo.
@@ -102,8 +106,12 @@ scripts/       Utilidades de bootstrap, backup y restore
   privado con deploy key de solo lectura; Ingress en
   `whoami.homelab.home.arpa` y UI en `argocd.homelab.home.arpa`, con entradas
   en el hosts de WSL y Windows.
+- Fase 3 desplegada: AdGuard Home `v0.107.80` en el namespace `adguard`, DNS
+  en `192.168.1.100:53` vía ServiceLB y UI en
+  `adguard.homelab.home.arpa`. Bloqueo verificado de forma directa.
 - cluster2 pendiente de la SD.
-- Siguiente: Fase 3 (DNS local con dnsmasq).
+- Siguiente: reescritura `*.homelab.home.arpa` en AdGuard y cambiar el DNS
+  del router a `192.168.1.100`.
 
 ## Ejecución
 
