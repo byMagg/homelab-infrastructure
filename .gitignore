@@ -1,0 +1,37 @@
+# Secretos y credenciales
+*.key
+*.pem
+*.crt
+*.p12
+*.kubeconfig
+kubeconfig
+.env
+.env.*
+secrets/
+age.key
+keys.txt
+
+# Estado local
+.venv/
+__pycache__/
+*.pyc
+.cache/
+tmp/
+*.retry
+*.log
+
+# Ansible
+ansible/inventory/**/host_vars/*.vault
+ansible/.vault_pass
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+crash.log
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
