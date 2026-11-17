@@ -1,0 +1,59 @@
+---
+- name: Descargar script de instalación de k3s
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: /tmp/k3s-install.sh
+    mode: "0755"
+
+- name: Instalar k3s server
+  ansible.builtin.command:
+    cmd: /tmp/k3s-install.sh
+    creates: /usr/local/bin/k3s
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    INSTALL_K3S_EXEC: "server --tls-san {{ ansible_host }}"
+  when: inventory_hostname in groups['k3s_server']
+
+- name: Esperar a la API de k3s
+  ansible.builtin.wait_for:
+    host: "{{ ansible_host }}"
+    port: "{{ k3s_api_port }}"
+    timeout: 180
+  when: inventory_hostname in groups['k3s_server']
+
+- name: Leer token del servidor
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: k3s_token_raw
+  no_log: true
+  when: inventory_hostname in groups['k3s_server']
+
+- name: Instalar k3s agent
+  ansible.builtin.command:
+    cmd: /tmp/k3s-install.sh
+    creates: /usr/local/bin/k3s
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version }}"
+    K3S_URL: "https://{{ hostvars[groups['k3s_server'][0]].ansible_host }}:{{ k3s_api_port }}"
+    K3S_TOKEN: "{{ hostvars[groups['k3s_server'][0]].k3s_token_raw.content | b64decode | trim }}"
+  when: inventory_hostname in groups['k3s_agents']
+
+- name: Esperar a que todos los nodos estén Ready
+  ansible.builtin.command:
+    cmd: >-
+      /usr/local/bin/k3s kubectl wait --for=condition=Ready nodes --all
+      --timeout=180s
+  changed_when: false
+  when: inventory_hostname in groups['k3s_server']
+
+- name: Mostrar nodos
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s kubectl get nodes -o wide
+  register: k3s_nodes
+  changed_when: false
+  when: inventory_hostname in groups['k3s_server']
+
+- name: Resumen del cluster
+  ansible.builtin.debug:
+    var: k3s_nodes.stdout_lines
+  when: inventory_hostname in groups['k3s_server']

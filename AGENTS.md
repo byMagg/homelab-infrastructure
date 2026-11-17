@@ -14,6 +14,7 @@ Ejecuta siempre desde la raíz del repo: `ansible.cfg` usa rutas relativas
 .venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags base,sd,sysctl,unattended
 .venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags ssh,firewall,fail2ban
 .venv/bin/ansible-playbook ansible/playbooks/phase0.yml --tags pi
+.venv/bin/ansible-playbook ansible/playbooks/phase1.yml
 .venv/bin/ansible-playbook ansible/playbooks/verify.yml
 ```
 
@@ -61,13 +62,15 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   conflicto de nombre: revisa `/etc/avahi/hosts` en todos los nodos por
   entradas estáticas que reclamen la misma IP.
 - UFW permite puertos del cluster solo desde `192.168.1.0/24`; un cambio de
-  puerto en k3s/Cilium exige actualizar `ansible/roles/common/tasks/main.yml`.
+  puerto en k3s exige actualizar `ansible/roles/common/tasks/main.yml`.
 
 ## Estado y convenciones
 
-- Fase 0 completada; k3s **no** está instalado todavía (Fase 1 pendiente).
+- Fases 0 y 1 completadas: k3s `v1.37.2+k3s1` (flannel, Traefik, ServiceLB,
+  local-path) en cluster0 y cluster1. Fase 2 (Argo CD) en curso.
+- Kubeconfig local en `~/.kube/homelab.yaml`; `kubectl` en `~/.local/bin`.
 - `kubernetes/` y `scripts/` del README son planificados, aún no existen.
-- No hay remoto git: los commits son locales.
+- Remoto `origin` por SSH: `git@github.com:byMagg/homelab-infrastructure.git`.
 - Nunca commitees kubeconfig, claves ni secretos (ver `.gitignore`).
 - No edites archivos gestionados por Ansible directamente en los nodos:
   cambia rol/plantilla y vuelve a aplicar el playbook.
