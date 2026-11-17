@@ -58,6 +58,20 @@ doubleclick.net  -> 0.0.0.0
 
 También responde desde Windows con `nslookup example.com 192.168.1.100`.
 
+### Cambiar la contraseña del panel
+
+AdGuard Home v0.107 no tiene cambio de contraseña en la UI: el usuario y el
+hash bcrypt viven en `/opt/adguardhome/conf/AdGuardHome.yaml`. El script
+`scripts/adguard-password.sh` la pide en local (sin echo), genera el hash y
+actualiza el PVC con un pod temporal para que AdGuard no sobrescriba el YAML al
+apagarse:
+
+```bash
+bash scripts/adguard-password.sh
+```
+
+Requiere el módulo `python3-bcrypt` en WSL.
+
 ## Reinstalación con PVC nuevos
 
 Si se recrean los PVC (por ejemplo, al reconstruir el cluster), AdGuard vuelve
