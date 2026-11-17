@@ -52,6 +52,16 @@ posible de la tarjeta SD antes de instalar Kubernetes.
    `zram+file`, con un `/var/swap` de 2 GB en la SD. `Mechanism=none` lo
    elimina y libera espacio.
 
+6. **Entradas estáticas de avahi secuestran IPs.** cluster1 tenía en
+   `/etc/avahi/hosts` restos de pruebas anteriores:
+   `192.168.1.100 whoami.local`, `192.168.1.102 zz-offline.local` y
+   `192.168.1.115 zz-control.local`. Al anunciar la IP de cluster0 como
+   `whoami.local`, avahi en cluster0 detectaba un conflicto cada 20 s y se
+   renombraba a `cluster0-N.local`, así que `cluster0.local` no resolvía. Se
+   eliminaron las entradas y se reinició avahi en ambos nodos. Comprobación:
+   `ps -o args= -C avahi-daemon` debe mostrar `cluster0.local`, no
+   `cluster0-47.local`.
+
 ## Verificación
 
 ```bash

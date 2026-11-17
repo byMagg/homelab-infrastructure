@@ -57,6 +57,9 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   no arranca con swap.
 - journald es volátil: los logs no sobreviven al reinicio. No busques causas en
   logs anteriores a un reboot.
+- `.local` depende de avahi. Si el proceso aparece como `cluster0-N.local`, hay
+  conflicto de nombre: revisa `/etc/avahi/hosts` en todos los nodos por
+  entradas estáticas que reclamen la misma IP.
 - UFW permite puertos del cluster solo desde `192.168.1.0/24`; un cambio de
   puerto en k3s/Cilium exige actualizar `ansible/roles/common/tasks/main.yml`.
 
