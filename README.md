@@ -76,7 +76,8 @@ Sin dominio público por ahora. Se usa un dominio interno:
       reescritura wildcard; pendiente el cutover del DNS de la LAN.
       *(desplegado 2026-11-17)*
 - [ ] **Fase 4 — TLS y secretos**: cert-manager con CA interna, Sealed Secrets.
-- [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana, alertas a ntfy.
+- [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana y alertas a ntfy.
+      *(stack desplegado 2026-11-17; pendientes las alertas)*
 - [ ] **Fase 6 — App demo + CI/CD**: multi-arch, Trivy, SBOM, Cosign, Argo.
 - [ ] **Fase 7 — Backup y DR**: snapshots a R2, restauración probada.
 - [ ] **Fase 8 — Hardening y upgrades**: kube-bench, Kyverno, drill de upgrade.
@@ -111,6 +112,9 @@ scripts/       Utilidades de bootstrap, backup y restore
   en `192.168.1.100:53` vía ServiceLB, reescritura
   `*.homelab.home.arpa` → `192.168.1.100` y UI en
   `adguard.homelab.home.arpa`. Bloqueo verificado de forma directa.
+- Observabilidad: `node-exporter`, `kube-state-metrics`, Prometheus (7 días,
+  PVC 5 Gi) y Grafana en `grafana.homelab.home.arpa` con el dashboard
+  `Homelab - Cluster` (temperatura, CPU, RAM, disco, red, pods).
 - cluster2 pendiente de la SD.
 - Siguiente: cambiar el DNS del DHCP del router (IPv4 e IPv6) a
   `192.168.1.100` y quitar la regla NRPT de los clientes Windows.

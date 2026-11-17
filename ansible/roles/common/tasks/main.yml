@@ -185,6 +185,7 @@
     - "4240"
     - "4244"
     - "6443"
+    - "9100"
     - "10250"
   tags: [firewall]
 
@@ -200,6 +201,22 @@
     - "5353"
     - "8472"
     - "51871"
+  tags: [firewall]
+
+# Prometheus corre en la red de pods y scrapea el kubelet (10250) y
+# node-exporter (9100) en la IP de cada nodo.
+- name: Permitir métricas de nodo desde la red de pods
+  community.general.ufw:
+    rule: allow
+    direction: in
+    proto: tcp
+    port: "{{ item.port }}"
+    from_ip: "{{ item.cidr }}"
+  loop:
+    - { port: "9100", cidr: "{{ cluster_cidr }}" }
+    - { port: "9100", cidr: "{{ service_cidr }}" }
+    - { port: "10250", cidr: "{{ cluster_cidr }}" }
+    - { port: "10250", cidr: "{{ service_cidr }}" }
   tags: [firewall]
 
 - name: Activar UFW

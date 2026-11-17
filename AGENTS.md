@@ -76,6 +76,11 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   (`Add-DnsClientNrptRule -Namespace '.homelab.home.arpa' -NameServers
   192.168.1.100`) o desactiva el DNS IPv6 del DHCP. WSL2 hereda el resolver de
   Windows.
+- Observabilidad (`namespace observability`): `node-exporter` no tiene
+  `/-/healthy` (probes a `/` y TCP); la salud de `kube-state-metrics` está en
+  `:8080/healthz`, no en telemetría; Grafana usa rootfs de solo lectura con
+  `GF_PLUGINS_PREINSTALL_DISABLED=true`. Prometheus scrapea la IP del nodo, así
+  que UFW abre `9100` y `10250` desde `cluster_cidr`/`service_cidr`.
 
 ## Estado y convenciones
 
@@ -84,6 +89,10 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 - Fase 3 desplegada: AdGuard Home `v0.107.80` en `kubernetes/apps/adguard`
   (namespace `adguard`), DNS en `192.168.1.100:53` vía ServiceLB y UI en
   `adguard.homelab.home.arpa`. La UI escucha en el puerto **80** del pod.
+- Fase 5 parcial: Prometheus + Grafana + `node-exporter` +
+  `kube-state-metrics` en `kubernetes/apps/observability` (namespace
+  `observability`); dashboard en `grafana.homelab.home.arpa` (admin por defecto
+  `admin`/`admin`, acceso anónimo de solo lectura). Ver `docs/fase-5.md`.
 - Kubeconfig local en `~/.kube/homelab.yaml`; `kubectl` en `~/.local/bin`.
 - `kubernetes/` existe; `scripts/` sigue siendo planificado.
 - Argo CD lee el repo con la deploy key del Secret `repo-homelab` (namespace
