@@ -67,8 +67,8 @@ Sin dominio público por ahora. Se usa un dominio interno:
 - [x] **Fase 1 — Cluster**: k3s `v1.37.2+k3s1` en cluster0 y cluster1,
       kubeconfig en WSL, verificación de nodos, DNS y Traefik.
       *(completada 2026-11-17)*
-- [ ] **Fase 2 — GitOps + primera app**: Argo CD, repo privado, `whoami` e
-      Ingress de Traefik. *(en curso)*
+- [x] **Fase 2 — GitOps + primera app**: Argo CD, repo privado, `whoami` e
+      Ingress de Traefik. *(completada 2026-11-17)*
 - [ ] **Fase 3 — DNS local**: dnsmasq con wildcard `*.homelab.home.arpa`.
 - [ ] **Fase 4 — TLS y secretos**: cert-manager con CA interna, Sealed Secrets.
 - [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana, alertas a ntfy.
@@ -98,8 +98,11 @@ scripts/       Utilidades de bootstrap, backup y restore
 - Fase 1 completada: k3s `v1.37.2+k3s1` en cluster0 (server) y cluster1
   (agent), kubeconfig en `~/.kube/homelab.yaml`, DNS interno y Traefik
   verificados.
+- Fase 2 completada: Argo CD `v3.6.1` sincroniza `whoami` desde el repo
+  privado con deploy key de solo lectura; Ingress en
+  `whoami.homelab.home.arpa` y entradas en el hosts de WSL y Windows.
 - cluster2 pendiente de la SD.
-- Siguiente: Fase 2 (Argo CD y primera app).
+- Siguiente: Fase 3 (DNS local con dnsmasq).
 
 ## Ejecución
 

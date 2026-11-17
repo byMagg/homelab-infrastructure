@@ -25,6 +25,8 @@ Ejecuta siempre desde la raíz del repo: `ansible.cfg` usa rutas relativas
   `.venv/bin/ansible-galaxy collection install community.general -p ansible/collections`
 - `stdout_callback = yaml` no existe en ansible-core 2.22; ya está configurado
   como `default` + `result_format = yaml`. No lo cambies.
+- `sudo` en WSL pide contraseña; para tareas root no interactivas usa
+  `wsl.exe -u root -e sh -c '...'`.
 
 ## Orden de la Fase 0
 
@@ -63,13 +65,17 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   entradas estáticas que reclamen la misma IP.
 - UFW permite puertos del cluster solo desde `192.168.1.0/24`; un cambio de
   puerto en k3s exige actualizar `ansible/roles/common/tasks/main.yml`.
+- Argo CD: los CRDs grandes fallan con `kubectl apply` normal; reinstalar con
+  `kubectl apply --server-side --force-conflicts`.
 
 ## Estado y convenciones
 
-- Fases 0 y 1 completadas: k3s `v1.37.2+k3s1` (flannel, Traefik, ServiceLB,
-  local-path) en cluster0 y cluster1. Fase 2 (Argo CD) en curso.
+- Fases 0, 1 y 2 completadas: k3s `v1.37.2+k3s1` (flannel, Traefik, ServiceLB,
+  local-path) y Argo CD `v3.6.1` sincronizando `kubernetes/apps/whoami`.
 - Kubeconfig local en `~/.kube/homelab.yaml`; `kubectl` en `~/.local/bin`.
-- `kubernetes/` y `scripts/` del README son planificados, aún no existen.
+- `kubernetes/` existe; `scripts/` sigue siendo planificado.
+- Argo CD lee el repo con la deploy key del Secret `repo-homelab` (namespace
+  `argocd`); la clave privada no está en Git.
 - Remoto `origin` por SSH: `git@github.com:byMagg/homelab-infrastructure.git`.
 - Nunca commitees kubeconfig, claves ni secretos (ver `.gitignore`).
 - No edites archivos gestionados por Ansible directamente en los nodos:
