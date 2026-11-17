@@ -114,7 +114,8 @@ scripts/       (planificado) Utilidades de bootstrap, backup y restore
   `adguard.homelab.home.arpa`. Bloqueo verificado de forma directa.
 - Observabilidad: `node-exporter`, `kube-state-metrics`, Prometheus (7 días,
   PVC 5 Gi) y Grafana en `grafana.homelab.home.arpa` con el dashboard
-  `Homelab - Cluster` (temperatura, CPU, RAM, disco, red, pods).
+  `Homelab - Cluster` (temperatura, CPU, RAM, disco, red, pods). La UI de
+  Prometheus se expone en `prometheus.homelab.home.arpa`.
 - cluster2 incorporado como worker ligero (2 GB), etiquetado
   `homelab.io/role=light` y aislado con un taint `NoSchedule`; `whoami` corre
   allí y `node-exporter` lo monitoriza.

@@ -73,8 +73,8 @@ data:
             siteMonitor: http://grafana.observability.svc.cluster.local:3000/api/health
         - Prometheus:
             icon: prometheus.png
-            href: http://grafana.homelab.home.arpa
-            description: Métricas (solo ClusterIP)
+            href: http://prometheus.homelab.home.arpa
+            description: Métricas y consultas PromQL
             siteMonitor: http://prometheus.observability.svc.cluster.local:9090/-/healthy
 
     - Red:

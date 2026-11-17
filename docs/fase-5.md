@@ -15,7 +15,9 @@ Namespace `observability`, gestionado por Argo CD con
 
 ## Acceso
 
-- UI: <http://grafana.homelab.home.arpa>
+- Grafana: <http://grafana.homelab.home.arpa>
+- Prometheus: <http://prometheus.homelab.home.arpa> (UI y consultas PromQL,
+  sin autenticación; solo accesible desde la LAN).
 - Anónimo: rol **Viewer** (solo lectura).
 - Admin: `admin` / `admin`; Grafana obliga a cambiarla al primer acceso. No hay
   Secret en Git a propósito.

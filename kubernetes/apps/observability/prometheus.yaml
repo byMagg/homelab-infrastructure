@@ -211,3 +211,22 @@ spec:
     - name: http
       port: 9090
       targetPort: http
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus
+  namespace: observability
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: prometheus.homelab.home.arpa
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  name: http
