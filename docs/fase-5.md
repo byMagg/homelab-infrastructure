@@ -43,13 +43,33 @@ mismo valor duplicado por sensor; el dashboard usa `node_thermal_zone_temp`.
 
 ## Dashboard
 
-Provisionado como ConfigMap (`grafana-dashboard-homelab`), sin tocar la UI:
+Provisionados como una clave por dashboard dentro del mismo ConfigMap
+(`grafana-dashboard-homelab`), sin tocar la UI. El proveedor `file` de Grafana
+lee todos los ficheros del directorio montado, así que añadir una clave basta:
+no hay que reiniciar el pod (kubelet tarda hasta un minuto en refrescar el
+volumen).
+
+`Homelab - Cluster` (`homelab-cluster`):
 
 1. Estadísticas: temperatura máxima, CPU, memoria, disco, nodos `Ready`, pods
    que no están `Running` y uptime mínimo.
 2. Series temporales: temperatura, CPU, memoria, load average, disco `/` y
    tráfico `eth0`.
 3. Tabla: top 10 de reinicios por pod.
+
+`Homelab - Workloads` (`homelab-workloads`):
+
+1. Estadísticas: pods `Running`, pods `Pending`/`Failed`/`Unknown`, pods con
+   reinicios en la última hora y deployments incompletos (`available` <
+   `spec.replicas`).
+2. Series temporales: CPU y memoria por namespace (top 8) y, por nodo, CPU y
+   memoria reservadas (`kube_pod_container_resource_requests`) frente a las
+   asignables (`kube_node_status_allocatable`).
+3. Tablas: top 10 de pods por CPU y por memoria, y pods `Running` por
+   namespace.
+
+Sustituye a Headlamp, que pedía pegar en cada navegador un token de
+ServiceAccount con `cluster-admin` y caducidad de una hora.
 
 ## Firewall
 
