@@ -114,8 +114,11 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `adguard.homelab.home.arpa`. La UI escucha en el puerto **80** del pod.
 - Fase 5 parcial: Prometheus + Grafana + `node-exporter` +
   `kube-state-metrics` en `kubernetes/apps/observability` (namespace
-  `observability`); dashboard en `grafana.homelab.home.arpa` (admin por defecto
-  `admin`/`admin`, acceso anónimo de solo lectura). Ver `docs/fase-5.md`.
+  `observability`); dashboards `Homelab - Cluster` y `Homelab - Workloads` en
+  `grafana.homelab.home.arpa` (admin por defecto `admin`/`admin`, acceso
+  anónimo de solo lectura). Cada dashboard es **una clave** del ConfigMap
+  `grafana-dashboard-homelab`: el proveedor `file` lee el directorio montado y
+  no hace falta reiniciar Grafana. Ver `docs/fase-5.md`.
 - Panel de inicio: Homepage `v2.8.0` en `kubernetes/apps/homepage` (namespace
   `homepage`), en `homepage.homelab.home.arpa`; enlaza Argo CD, Grafana,
   Prometheus, AdGuard y whoami.
