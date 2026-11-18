@@ -10,6 +10,8 @@ kubeconfig
 secrets/
 age.key
 keys.txt
+# Manifiestos de Secret con valores en claro (token de Cloudflare, etc.)
+*token.yaml
 
 # Estado local
 .venv/
