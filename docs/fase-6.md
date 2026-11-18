@@ -1,0 +1,165 @@
+# Fase 6 — Dominio público con Cloudflare Tunnel
+
+Fecha: 2026-11-19
+Estado: preparado en el repo; el túnel no existe hasta tener dominio.
+Imagen: `cloudflare/cloudflared:2026.11.1`
+Namespace: `cloudflared`
+
+## Objetivo
+
+Publicar una muestra de los servicios del cluster en Internet con un dominio
+propio, sin abrir puertos en el router y sin depender de una IP pública fija.
+El caso de uso es un portfolio: el sitio y las demos son públicos, los paneles
+de administración quedan detrás de Cloudflare Access.
+
+## Diseño
+
+```
+Internet ──► Cloudflare edge (TLS, WAF, Access)
+                 │  túnel saliente QUIC  (el cluster inicia la conexión)
+                 ▼
+          cloudflared ×2  (namespace cloudflared)
+                 │  http://traefik.kube-system.svc.cluster.local:80
+                 ▼
+              Traefik ──► Ingress por Host ──► portfolio / homepage / grafana / ...
+```
+
+| Pieza | Decisión | Motivo |
+|---|---|---|
+| Entrada | Cloudflare Tunnel | Sin port forwarding, funciona detrás de CGNAT, sin IP fija |
+| TLS | Borde de Cloudflare | No hace falta cert-manager ni Let's Encrypt en el cluster |
+| DNS público | Zona en Cloudflare | CNAME proxied automático al crear cada public hostname |
+| DNS interno | AdGuard (`*.homelab.home.arpa`) | Sigue siendo el DNS de la LAN; no se toca |
+| Enrutado de apps | `Ingress` por `Host` | Único sitio donde vive la configuración, versionado en Git |
+| Paneles admin | Cloudflare Access (OTP por email) | Gratis hasta 50 usuarios; no hay que tocar las apps |
+| Réplicas | 2, una por nodo de 4 GB | Cada réplica abre su propia conexión QUIC |
+
+La pieza clave: **cada public hostname apunta al mismo origen**, el Service de
+Traefik. `cloudflared` no sabe nada de servicios concretos; quien decide es el
+`Ingress`. Añadir un servicio nuevo es añadir su `Ingress` en Git y una entrada
+en el túnel.
+
+## Lo que NO hace falta
+
+- Abrir 80/443 en el router (ni tocar UFW: sus reglas siguen siendo para la LAN).
+- IP pública fija ni DDNS: el túnel es una conexión saliente.
+- cert-manager, Let's Encrypt ni secretos ACME.
+- Redirigir HTTP→HTTPS en Traefik: el redirect lo hace Cloudflare; el origen es
+  HTTP y Traefik tiene el entrypoint `web` sin redirección.
+
+## Prerrequisitos
+
+1. Un dominio registrado (Cloudflare Registrar o cualquiera que permita cambiar
+   los nameservers).
+2. El dominio **activo en Cloudflare** (nameservers apuntando a Cloudflare) y el
+   plan gratuito basta.
+3. Cuenta de Cloudflare Zero Trust creada (se activa sola al entrar en
+   *Zero Trust*; el plan gratuito incluye túneles y Access hasta 50 usuarios).
+
+## Pasos
+
+### 1. Registrar el dominio y delegarlo a Cloudflare
+
+En el registrador, cambiar los nameservers por los que indique Cloudflare. La
+zona tarda desde minutos hasta unas horas en pasar a `Active`.
+
+### 2. Crear el túnel
+
+*Zero Trust → Networks → Tunnels → Create a tunnel → Cloudflared*.
+
+- Nombre: `homelab`.
+- Guardar el **token** que muestra el asistente (solo se muestra ahí).
+
+### 3. Public hostnames
+
+En la pestaña *Public Hostname* del túnel, una entrada por servicio:
+
+| Subdomain | Domain | Path | Service |
+|---|---|---|---|
+| (vacío) | `tudominio.com` | | `http://traefik.kube-system.svc.cluster.local:80` |
+| `homepage` | `tudominio.com` | | `http://traefik.kube-system.svc.cluster.local:80` |
+| `grafana` | `tudominio.com` | | `http://traefik.kube-system.svc.cluster.local:80` |
+| `argocd` | `tudominio.com` | | `http://traefik.kube-system.svc.cluster.local:80` |
+
+El dashboard crea el CNAME proxied hacia `<uuid>.cfargotunnel.com`. **El
+Host header se conserva**, así que el `Ingress` de Kubernetes debe declarar ese
+mismo host público (o, mejor, se añade el host público junto al interno en el
+mismo `Ingress`).
+
+No usar el puerto 443 ni `https://` en *Service*: el tramo cluster→Traefik es
+HTTP.
+
+### 4. Crear el Secret del token
+
+El token no se commitea. Tras el primer sync de Argo (que crea el namespace):
+
+```bash
+kubectl -n cloudflared create secret generic cloudflared-token \
+  --from-literal=TUNNEL_TOKEN='<token>'
+kubectl -n cloudflared rollout restart deploy/cloudflared
+```
+
+Sin el Secret, el pod queda en `CreateContainerConfigError`; es esperado la
+primera vez y Argo no se queja porque el Secret no está gestionado por él.
+
+### 5. Desplegar
+
+```bash
+kubectl apply -f kubernetes/argocd/cloudflared-app.yaml
+kubectl -n cloudflared get pods -w
+```
+
+### 6. Proteger los paneles con Access
+
+*Zero Trust → Access → Applications → Add an application → Self-hosted*, una
+por hostname sensible (`argocd`, `grafana`, y el de AdGuard si algún día se
+publica). Política: `Emails` = tu correo. El resto se deja sin aplicación de
+Access.
+
+## Verificación
+
+```bash
+kubectl -n cloudflared logs deploy/cloudflared | grep -i "Registered tunnel connection"
+# 4 conexiones (2 por réplica) = túnel sano
+curl -I https://tudominio.com            # 200 y certificado válido de Cloudflare
+curl -H 'Host: homepage.homelab.home.arpa' http://192.168.1.100/   # sigue igual
+```
+
+## Gotchas
+
+- **`/ready` es la única probe fiable.** El proceso puede estar vivo y sin
+  conexión registrada; con un TCP check el pod parecería sano y el sitio caído.
+- **El token no se refresca en caliente.** Rotarlo exige actualizar el Secret y
+  hacer `rollout restart`.
+- **Wildcard en public hostnames**: el dashboard pide hosts explícitos. Si algún
+  día se quieren muchos subdominios, hay que pasar a un túnel gestionado en
+  local (`config.yml` con regla `*.tudominio.com` + credenciales JSON en un
+  Secret) o usar Terraform. Para 4-5 servicios no compensa.
+- **Hairpin**: desde la LAN, `https://homepage.tudominio.com` sale a Internet y
+  vuelve por el túnel. Funciona, pero añade latencia; si molesta, un rewrite en
+  AdGuard a `192.168.1.100` sirve el mismo `Ingress` (el TLS del navegador
+  fallaría, así que solo tiene sentido para HTTP interno o con el host interno).
+- **No activar "No TLS Verify"** en el origen: el tramo al cluster es HTTP
+  plano, no TLS.
+- **Los nombres internos no cambian**: `*.homelab.home.arpa` sigue resolviendo
+  por AdGuard. El dominio público es una zona aparte.
+- Si el sitio público pesa (vídeo, descargas grandes), revisa la política de
+  uso de Cloudflare: el túnel no está pensado como CDN de medios.
+
+## Rollback
+
+```bash
+kubectl delete application cloudflared -n argocd
+kubectl delete ns cloudflared
+```
+
+Después, borrar el túnel y los CNAME en el dashboard. El cluster queda como
+estaba; no hay nada que revertir en el router ni en UFW.
+
+## Pendiente
+
+- `kubernetes/apps/portfolio` sustituyendo a `whoami` (3 réplicas, imagen
+  estática en GHCR construida en GitHub Actions). Ver la conversación de diseño:
+  namespace `portfolio`, PDB `maxUnavailable: 1`, `topologySpreadConstraints`.
+- Sealed Secrets para dejar de crear el token a mano.
+- Actualizar `README.md` y `AGENTS.md` cuando el túnel esté realmente en pie.
