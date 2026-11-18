@@ -45,7 +45,9 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: cloudflared-token
-                  key: TUNNEL_TOKEN
+                  # El nombre de la clave es libre; la variable de entorno sí
+                  # debe llamarse TUNNEL_TOKEN, que es la que lee cloudflared.
+                  key: token
           ports:
             - name: metrics
               containerPort: 2000

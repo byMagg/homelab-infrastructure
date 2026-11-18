@@ -105,7 +105,8 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   se refrescan en caliente: al tocar `config.yaml` actualiza la anotación
   `homelab.io/config-hash` del Deployment (`sha256sum` del fichero).
 - Cloudflare Tunnel (`namespace cloudflared`): el token va en el Secret
-  `cloudflared-token` (clave `TUNNEL_TOKEN`), **nunca** en los `args` del
+  `cloudflared-token` (clave `token`; la *variable* sí se llama
+  `TUNNEL_TOKEN`), **nunca** en los `args` del
   Deployment: esos están en Git y el token acabaría commiteado. La probe buena
   es `/ready` en `:2000` — proceso vivo no implica túnel registrado, y un TCP
   check deja pasar pods "sanos" con el sitio caído. El token no se refresca en

@@ -95,7 +95,7 @@ El token no se commitea. Tras el primer sync de Argo (que crea el namespace):
 
 ```bash
 kubectl -n cloudflared create secret generic cloudflared-token \
-  --from-literal=TUNNEL_TOKEN='<token>'
+  --from-literal=token='<token>'
 kubectl -n cloudflared rollout restart deploy/cloudflared
 ```
 
