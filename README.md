@@ -17,7 +17,7 @@ Acceso desde WSL2 (`192.168.1.110`) por SSH y mDNS (`.local`).
 
 ## Dominio local
 
-Sin dominio público por ahora. Se usa un dominio interno:
+Sin dominio público todavía. Se usa un dominio interno:
 
 - Zona: `homelab.home.arpa` (RFC 8375, reservado para redes domésticas).
 - Fase inicial: entradas en `/etc/hosts` de WSL y Windows apuntando a
@@ -26,7 +26,13 @@ Sin dominio público por ahora. Se usa un dominio interno:
   reescritura `*.homelab.home.arpa` → `192.168.1.100` ya activa.
 - Pendiente: cambiar el DNS (IPv4 **e IPv6**) del DHCP del router a
   `192.168.1.100`.
-- TLS: pendiente. Se añadirá cert-manager con CA interna cuando haga falta.
+- TLS: en lo público lo termina Cloudflare (sin cert-manager). Para HTTPS
+  dentro de la LAN sigue pendiente una CA interna.
+
+Ya hay un **túnel de Cloudflare** desplegado (`kubernetes/apps/cloudflared`,
+namespace `cloudflared`) esperando el dominio para publicar una selección de
+servicios. No requiere abrir puertos en el router ni IP fija. Ver
+`docs/fase-6.md`.
 
 ## Decisiones de arquitectura
 

@@ -104,6 +104,15 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   Ingress **y** `$(MY_POD_IP):3000` para las probes. Los montajes `subPath` no
   se refrescan en caliente: al tocar `config.yaml` actualiza la anotación
   `homelab.io/config-hash` del Deployment (`sha256sum` del fichero).
+- Cloudflare Tunnel (`namespace cloudflared`): el token va en el Secret
+  `cloudflared-token` (clave `TUNNEL_TOKEN`), **nunca** en los `args` del
+  Deployment: esos están en Git y el token acabaría commiteado. La probe buena
+  es `/ready` en `:2000` — proceso vivo no implica túnel registrado, y un TCP
+  check deja pasar pods "sanos" con el sitio caído. El token no se refresca en
+  caliente: tras cambiarlo, `rollout restart`. Todas las public hostnames
+  apuntan a `http://traefik.kube-system.svc.cluster.local:80`, así que el
+  enrutado sigue viviendo en los `Ingress`. El dashboard **no** acepta
+  wildcards en public hostnames.
 
 ## Estado y convenciones
 
@@ -122,6 +131,10 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 - Panel de inicio: Homepage `v2.8.0` en `kubernetes/apps/homepage` (namespace
   `homepage`), en `homepage.homelab.home.arpa`; enlaza Argo CD, Grafana,
   Prometheus, AdGuard y whoami.
+- Fase 6 en curso: Cloudflare Tunnel desplegado (`kubernetes/apps/cloudflared`,
+  2 réplicas) y conectado al borde. Falta el dominio para crear public
+  hostnames y el portfolio que sustituirá a `whoami`. Sin cert-manager: el TLS
+  público lo termina Cloudflare. Ver `docs/fase-6.md`.
 - Kubeconfig local en `~/.kube/homelab.yaml`; `kubectl` en `~/.local/bin`.
 - `kubernetes/` existe; `scripts/` sigue siendo planificado.
 - Argo CD lee el repo con la deploy key del Secret `repo-homelab` (namespace
