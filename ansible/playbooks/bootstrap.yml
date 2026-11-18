@@ -11,7 +11,7 @@
   become: true
   gather_facts: true
   vars:
-    bootstrap_pubkey: "{{ lookup('file', lookup('env', 'HOME') ~ '/.ssh/id_ed25519.pub') }}"
+    bootstrap_pubkey: "{{ lookup('file', lookup('env', 'HOME') ~ '/.ssh/id_ed25519.pub') | trim }}"
   tasks:
     - name: Crear usuario ansible
       ansible.builtin.user:
@@ -21,11 +21,25 @@
         groups: sudo
         append: true
 
+    - name: Crear ~/.ssh
+      ansible.builtin.file:
+        path: /home/ansible/.ssh
+        state: directory
+        owner: ansible
+        group: ansible
+        mode: "0700"
+
+    # Se usa lineinfile y no authorized_key porque este último vive en la
+    # colección ansible.posix, que no está instalada: el bootstrap tiene que
+    # funcionar en un portátil recién formateado con lo mínimo.
     - name: Instalar clave pública del portátil
-      ansible.builtin.authorized_key:
-        user: ansible
-        key: "{{ bootstrap_pubkey }}"
-        state: present
+      ansible.builtin.lineinfile:
+        path: /home/ansible/.ssh/authorized_keys
+        line: "{{ bootstrap_pubkey }}"
+        create: true
+        owner: ansible
+        group: ansible
+        mode: "0600"
 
     - name: Permitir sudo sin contraseña
       ansible.builtin.copy:
