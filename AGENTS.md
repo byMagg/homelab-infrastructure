@@ -133,9 +133,11 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `homepage`), en `homepage.homelab.home.arpa`; enlaza Argo CD, Grafana,
   Prometheus, AdGuard y whoami.
 - Fase 6 en curso: Cloudflare Tunnel desplegado (`kubernetes/apps/cloudflared`,
-  2 réplicas) y conectado al borde. Falta el dominio para crear public
-  hostnames y el portfolio que sustituirá a `whoami`. Sin cert-manager: el TLS
-  público lo termina Cloudflare. Ver `docs/fase-6.md`.
+  2 réplicas) y conectado al borde, con el dominio `dbarroso.dev`. Los `Ingress`
+  ya declaran el host público junto al interno (`lab`, `whoami`, `grafana`,
+  `prometheus`, `argocd`). Falta crear los public hostnames en el dashboard y el
+  portfolio que sustituirá a `whoami`. Sin cert-manager: el TLS público lo
+  termina Cloudflare. Ver `docs/fase-6.md`.
 - Kubeconfig local en `~/.kube/homelab.yaml`; `kubectl` en `~/.local/bin`.
 - `kubernetes/` existe; `scripts/` sigue siendo planificado.
 - Argo CD lee el repo con la deploy key del Secret `repo-homelab` (namespace
