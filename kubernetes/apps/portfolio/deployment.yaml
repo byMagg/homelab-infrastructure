@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio
+  namespace: portfolio
+  labels:
+    app.kubernetes.io/name: portfolio
+spec:
+  # Tres réplicas: una por nodo. Es un sitio estático, así que cabe en
+  # cluster2 y el reparto enseña tolerations y topologySpreadConstraints.
+  replicas: 3
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: portfolio
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: portfolio
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        # uid del usuario nginx en la imagen nginx-unprivileged.
+        runAsUser: 101
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: portfolio
+          # El tag es el SHA corto del commit en dbarrosourr.github.io.
+          image: ghcr.io/dbarrosourr/cv-portfolio:sha-9b37375
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 10m
+              memory: 24Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            # nginx escribe el pid, el cache y los temporales aunque no sea
+            # root: sin estos emptyDir el contenedor muere con EROFS.
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+      # cluster2 (2 GB) está tainted como nodo ligero; un nginx estático
+      # encaja en ese perfil.
+      tolerations:
+        - key: homelab.io/role
+          operator: Equal
+          value: light
+          effect: NoSchedule
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: portfolio

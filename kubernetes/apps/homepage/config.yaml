@@ -59,11 +59,11 @@ data:
             href: https://argocd.dbarroso.dev
             description: GitOps y estado de las apps
             siteMonitor: http://argocd-server.argocd.svc.cluster.local
-        - whoami:
-            icon: si-traefik
-            href: https://whoami.dbarroso.dev
-            description: Demo de Traefik con 2 réplicas
-            siteMonitor: http://whoami.demo.svc.cluster.local
+        - Portfolio:
+            icon: si-astro
+            href: https://dbarroso.dev
+            description: CV en Astro servido desde el cluster
+            siteMonitor: http://portfolio.portfolio.svc.cluster.local
 
     - Observabilidad:
         - Grafana:

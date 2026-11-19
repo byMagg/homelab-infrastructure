@@ -1,17 +1,17 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: whoami
+  name: portfolio
   namespace: argocd
 spec:
   project: default
   source:
     repoURL: git@github.com:byMagg/homelab-infrastructure.git
     targetRevision: main
-    path: kubernetes/apps/whoami
+    path: kubernetes/apps/portfolio
   destination:
     server: https://kubernetes.default.svc
-    namespace: demo
+    namespace: portfolio
   syncPolicy:
     automated:
       prune: true

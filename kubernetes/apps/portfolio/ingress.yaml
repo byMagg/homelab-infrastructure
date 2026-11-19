@@ -1,29 +1,29 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: whoami
-  namespace: demo
+  name: portfolio
+  namespace: portfolio
 spec:
   ingressClassName: traefik
   rules:
-    - host: whoami.homelab.home.arpa
+    # Público: es el sitio que va en el CV.
+    - host: dbarroso.dev
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: whoami
+                name: portfolio
                 port:
                   name: http
-    # Host público vía Cloudflare Tunnel (ver docs/fase-6.md).
-    - host: whoami.dbarroso.dev
+    - host: portfolio.homelab.home.arpa
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: whoami
+                name: portfolio
                 port:
                   name: http

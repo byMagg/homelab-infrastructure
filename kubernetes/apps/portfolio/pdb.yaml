@@ -1,0 +1,12 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: portfolio
+  namespace: portfolio
+spec:
+  # Con 3 réplicas, un drenaje de nodo puede tumbar una sin dejar el sitio
+  # sin servicio.
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: portfolio
