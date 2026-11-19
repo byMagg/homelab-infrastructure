@@ -118,7 +118,7 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 ## Estado y convenciones
 
 - Fases 0, 1 y 2 completadas: k3s `v1.37.2+k3s1` (flannel, Traefik, ServiceLB,
-  local-path) y Argo CD `v3.6.1` sincronizando `kubernetes/apps/whoami`.
+  local-path) y Argo CD `v3.6.1` gestionando las apps de `kubernetes/`.
 - Fase 3 desplegada: AdGuard Home `v0.107.80` en `kubernetes/apps/adguard`
   (namespace `adguard`), DNS en `192.168.1.100:53` vía ServiceLB y UI en
   `adguard.homelab.home.arpa`. La UI escucha en el puerto **80** del pod.
@@ -134,7 +134,7 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   Prometheus, AdGuard y el portfolio.
 - Fase 6 en curso: Cloudflare Tunnel desplegado (`kubernetes/apps/cloudflared`,
   2 réplicas) y conectado al borde, con el dominio `dbarroso.dev`. Los `Ingress`
-  ya declaran el host público junto al interno (`lab`, `whoami`, `grafana`,
+  ya declaran el host público junto al interno (`lab`, `grafana`,
   `prometheus`, `argocd`) y la raíz sirve el portfolio. Falta crear los public
   hostnames en el dashboard. Sin cert-manager: el TLS público lo termina
   Cloudflare. Ver `docs/fase-6.md`.
