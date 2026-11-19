@@ -40,7 +40,7 @@ spec:
             # Homepage valida la cabecera Host. El primer valor cubre el
             # Ingress; el segundo, las probes del kubelet contra la IP del pod.
             - name: HOMEPAGE_ALLOWED_HOSTS
-              value: "homepage.homelab.home.arpa,$(MY_POD_IP):3000"
+              value: "homepage.homelab.home.arpa,lab.dbarroso.dev,$(MY_POD_IP):3000"
           ports:
             - name: http
               containerPort: 3000

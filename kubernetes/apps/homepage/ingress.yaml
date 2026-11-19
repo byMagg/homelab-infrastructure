@@ -6,6 +6,17 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    # Host público: índice de demos para el portfolio.
+    - host: lab.dbarroso.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: homepage
+                port:
+                  name: http
     - host: homepage.homelab.home.arpa
       http:
         paths:

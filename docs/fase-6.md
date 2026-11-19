@@ -76,10 +76,15 @@ En la pestaña *Public Hostname* del túnel, una entrada por servicio:
 
 | Subdomain | Domain | Path | Service |
 |---|---|---|---|
-| (vacío) | `tudominio.com` | | `http://traefik.kube-system.svc.cluster.local:80` |
-| `homepage` | `tudominio.com` | | `http://traefik.kube-system.svc.cluster.local:80` |
-| `grafana` | `tudominio.com` | | `http://traefik.kube-system.svc.cluster.local:80` |
-| `argocd` | `tudominio.com` | | `http://traefik.kube-system.svc.cluster.local:80` |
+| `lab` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
+| `whoami` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
+| `grafana` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
+| `prometheus` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
+| `argocd` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
+
+La raíz `dbarroso.dev` queda reservada para el portfolio, que todavía no
+existe. `lab`, `whoami`, `grafana`, `prometheus` y `argocd` ya tienen su regla
+en el `Ingress` correspondiente, con el host interno al lado.
 
 El dashboard crea el CNAME proxied hacia `<uuid>.cfargotunnel.com`. **El
 Host header se conserva**, así que el `Ingress` de Kubernetes debe declarar ese
@@ -121,7 +126,7 @@ Access.
 ```bash
 kubectl -n cloudflared logs deploy/cloudflared | grep -i "Registered tunnel connection"
 # 4 conexiones (2 por réplica) = túnel sano
-curl -I https://tudominio.com            # 200 y certificado válido de Cloudflare
+curl -I https://lab.dbarroso.dev        # 200 y certificado válido de Cloudflare
 curl -H 'Host: homepage.homelab.home.arpa' http://192.168.1.100/   # sigue igual
 ```
 

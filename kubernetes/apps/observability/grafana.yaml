@@ -164,6 +164,17 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    # Host público (protegido con Cloudflare Access).
+    - host: grafana.dbarroso.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  name: http
     - host: grafana.homelab.home.arpa
       http:
         paths:

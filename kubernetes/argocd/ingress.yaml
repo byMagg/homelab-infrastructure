@@ -6,6 +6,17 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
+    # Host público (protegido con Cloudflare Access).
+    - host: argocd.dbarroso.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 80
     - host: argocd.homelab.home.arpa
       http:
         paths:
