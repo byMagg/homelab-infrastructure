@@ -76,15 +76,14 @@ En la pestaña *Public Hostname* del túnel, una entrada por servicio:
 
 | Subdomain | Domain | Path | Service |
 |---|---|---|---|
+| *(vacío)* | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
 | `lab` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
-| `whoami` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
 | `grafana` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
 | `prometheus` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
 | `argocd` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
 
-La raíz `dbarroso.dev` queda reservada para el portfolio, que todavía no
-existe. `lab`, `whoami`, `grafana`, `prometheus` y `argocd` ya tienen su regla
-en el `Ingress` correspondiente, con el host interno al lado.
+La raíz sirve el portfolio (`kubernetes/apps/portfolio`). Todos los hosts ya
+tienen su regla en el `Ingress` correspondiente, con el host interno al lado.
 
 El dashboard crea el CNAME proxied hacia `<uuid>.cfargotunnel.com`. **El
 Host header se conserva**, así que el `Ingress` de Kubernetes debe declarar ese
@@ -138,9 +137,9 @@ curl -H 'Host: homepage.homelab.home.arpa' http://192.168.1.100/   # sigue igual
   hacer `rollout restart`.
 - **Wildcard en public hostnames**: el dashboard pide hosts explícitos. Si algún
   día se quieren muchos subdominios, hay que pasar a un túnel gestionado en
-  local (`config.yml` con regla `*.tudominio.com` + credenciales JSON en un
+  local (`config.yml` con regla `*.dbarroso.dev` + credenciales JSON en un
   Secret) o usar Terraform. Para 4-5 servicios no compensa.
-- **Hairpin**: desde la LAN, `https://homepage.tudominio.com` sale a Internet y
+- **Hairpin**: desde la LAN, `https://lab.dbarroso.dev` sale a Internet y
   vuelve por el túnel. Funciona, pero añade latencia; si molesta, un rewrite en
   AdGuard a `192.168.1.100` sirve el mismo `Ingress` (el TLS del navegador
   fallaría, así que solo tiene sentido para HTTP interno o con el host interno).
@@ -163,8 +162,6 @@ estaba; no hay nada que revertir en el router ni en UFW.
 
 ## Pendiente
 
-- `kubernetes/apps/portfolio` sustituyendo a `whoami` (3 réplicas, imagen
-  estática en GHCR construida en GitHub Actions). Ver la conversación de diseño:
-  namespace `portfolio`, PDB `maxUnavailable: 1`, `topologySpreadConstraints`.
 - Sealed Secrets para dejar de crear el token a mano.
-- Actualizar `README.md` y `AGENTS.md` cuando el túnel esté realmente en pie.
+- Argo CD Image Updater (o un workflow que abra PR) para no tener que subir a
+  mano el tag de `ghcr.io/dbarrosourr/cv-portfolio` en cada cambio del CV.

@@ -131,13 +131,19 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   no hace falta reiniciar Grafana. Ver `docs/fase-5.md`.
 - Panel de inicio: Homepage `v2.8.0` en `kubernetes/apps/homepage` (namespace
   `homepage`), en `homepage.homelab.home.arpa`; enlaza Argo CD, Grafana,
-  Prometheus, AdGuard y whoami.
+  Prometheus, AdGuard y el portfolio.
 - Fase 6 en curso: Cloudflare Tunnel desplegado (`kubernetes/apps/cloudflared`,
   2 réplicas) y conectado al borde, con el dominio `dbarroso.dev`. Los `Ingress`
   ya declaran el host público junto al interno (`lab`, `whoami`, `grafana`,
-  `prometheus`, `argocd`). Falta crear los public hostnames en el dashboard y el
-  portfolio que sustituirá a `whoami`. Sin cert-manager: el TLS público lo
-  termina Cloudflare. Ver `docs/fase-6.md`.
+  `prometheus`, `argocd`) y la raíz sirve el portfolio. Falta crear los public
+  hostnames en el dashboard. Sin cert-manager: el TLS público lo termina
+  Cloudflare. Ver `docs/fase-6.md`.
+- Portfolio: `kubernetes/apps/portfolio` (namespace `portfolio`, 3 réplicas de
+  `nginx-unprivileged`). La imagen la construye el repo del sitio
+  (`dbarrosourr/dbarrosourr.github.io`) en GitHub Actions y se publica en
+  `ghcr.io/dbarrosourr/cv-portfolio:sha-<commit>`; el tag se sube a mano en el
+  Deployment. El paquete de GHCR debe ser **público** o el kubelet no puede
+  hacer pull.
 - Kubeconfig local en `~/.kube/homelab.yaml`; `kubectl` en `~/.local/bin`.
 - `kubernetes/` existe; `scripts/` sigue siendo planificado.
 - Argo CD lee el repo con la deploy key del Secret `repo-homelab` (namespace
