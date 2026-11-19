@@ -160,6 +160,25 @@ kubectl delete ns cloudflared
 Después, borrar el túnel y los CNAME en el dashboard. El cluster queda como
 estaba; no hay nada que revertir en el router ni en UFW.
 
+## Publicación de la imagen del portfolio
+
+El sitio (`dbarrosourr/dbarrosourr.github.io`) es un Astro estático. El workflow
+`image.yaml` construye una imagen `linux/arm64` y la publica en
+`ghcr.io/dbarrosourr/cv-portfolio:sha-<commit>`; el Deployment de
+`kubernetes/apps/portfolio` fija ese tag a mano.
+
+El paquete tiene que ser **público**, y aquí hay una trampa: `dbarrosourr` es una
+organización, así que el botón *Change visibility → Public* falla con "los
+organizadores no permiten paquetes públicos" hasta que un owner habilita
+*Organization settings → Packages → Package Creation → Public*. El síntoma en el
+cluster es `ErrImagePull` con `401 Unauthorized` al pedir el token anónimo; el
+kubelet reintenta con backoff de hasta 5 minutos, así que tras cambiar la
+visibilidad conviene borrar los pods para no esperar.
+
+```bash
+kubectl -n portfolio delete pods -l app.kubernetes.io/name=portfolio
+```
+
 ## Pendiente
 
 - Sealed Secrets para dejar de crear el token a mano.

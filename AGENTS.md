@@ -143,7 +143,11 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   (`dbarrosourr/dbarrosourr.github.io`) en GitHub Actions y se publica en
   `ghcr.io/dbarrosourr/cv-portfolio:sha-<commit>`; el tag se sube a mano en el
   Deployment. El paquete de GHCR debe ser **público** o el kubelet no puede
-  hacer pull.
+  hacer pull. `dbarrosourr` es una **organización**, así que GitHub bloquea el
+  cambio a público hasta que la org lo permite en *Settings → Packages →
+  Package Creation → Public*; el síntoma es `ErrImagePull` con
+  `unknown status ... 401 Unauthorized` en el token anónimo, y el backoff del
+  kubelet dura hasta 5 min (borrar los pods fuerza el reintento).
 - Kubeconfig local en `~/.kube/homelab.yaml`; `kubectl` en `~/.local/bin`.
 - `kubernetes/` existe; `scripts/` sigue siendo planificado.
 - Argo CD lee el repo con la deploy key del Secret `repo-homelab` (namespace
