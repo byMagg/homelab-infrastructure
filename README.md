@@ -24,8 +24,8 @@ Sin dominio público todavía. Se usa un dominio interno:
   `192.168.1.100`.
 - DNS y bloqueo: AdGuard Home en el cluster (`192.168.1.100:53`), con
   reescritura `*.homelab.home.arpa` → `192.168.1.100` ya activa.
-- Pendiente: cambiar el DNS (IPv4 **e IPv6**) del DHCP del router a
-  `192.168.1.100`.
+- Cutover hecho: el DHCP del router entrega `192.168.1.100` como DNS (IPv4 e
+  IPv6) y la regla NRPT de Windows ya se ha retirado.
 - TLS: en lo público lo termina Cloudflare (sin cert-manager). Para HTTPS
   dentro de la LAN sigue pendiente una CA interna.
 
@@ -78,9 +78,9 @@ servicios. No requiere abrir puertos en el router ni IP fija. Ver
       *(completada 2026-11-17)*
 - [x] **Fase 2 — GitOps + primera app**: Argo CD, repo privado, `whoami` e
       Ingress de Traefik. *(completada 2026-11-17)*
-- [ ] **Fase 3 — DNS y bloqueo**: AdGuard Home desplegado en el cluster con
-      reescritura wildcard; pendiente el cutover del DNS de la LAN.
-      *(desplegado 2026-11-17)*
+- [x] **Fase 3 — DNS y bloqueo**: AdGuard Home en el cluster, reescritura
+      wildcard y cutover del DNS de la LAN (IPv4 e IPv6).
+      *(completada 2026-11-21)*
 - [ ] **Fase 4 — TLS y secretos**: cert-manager con CA interna, Sealed Secrets.
 - [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana y alertas a ntfy.
       *(stack desplegado 2026-11-17; pendientes las alertas)*
@@ -114,10 +114,12 @@ scripts/       (planificado) Utilidades de bootstrap, backup y restore
   privado con deploy key de solo lectura; Ingress en
   `whoami.homelab.home.arpa` y UI en `argocd.homelab.home.arpa`, con entradas
   en el hosts de WSL y Windows.
-- Fase 3 desplegada: AdGuard Home `v0.107.80` en el namespace `adguard`, DNS
+- Fase 3 completada: AdGuard Home `v0.107.80` en el namespace `adguard`, DNS
   en `192.168.1.100:53` vía ServiceLB, reescritura
   `*.homelab.home.arpa` → `192.168.1.100` y UI en
-  `adguard.homelab.home.arpa`. Bloqueo verificado de forma directa.
+  `adguard.homelab.home.arpa`. El router ya entrega AdGuard como DNS (IPv4 e
+  IPv6), la regla NRPT de Windows se ha retirado y la resolución se verifica
+  contra `cluster0` sin reglas locales.
 - Observabilidad: `node-exporter`, `kube-state-metrics`, Prometheus (7 días,
   PVC 5 Gi) y Grafana en `grafana.homelab.home.arpa` con el dashboard
   `Homelab - Cluster` (temperatura, CPU, RAM, disco, red, pods). La UI de
@@ -132,8 +134,8 @@ scripts/       (planificado) Utilidades de bootstrap, backup y restore
 - Reconstrucción 2026-11-17: cluster0 y cluster2 reflasheados, Fase 0/1
   reaplicadas, cluster1 reincorporado con el token nuevo y Argo CD + apps
   resincronizadas.
-- Siguiente: cambiar el DNS del DHCP del router (IPv4 e IPv6) a
-  `192.168.1.100` y quitar la regla NRPT de los clientes Windows.
+- Siguiente: Fase 4 — TLS interno con CA propia y gestión de secretos
+  (Sealed Secrets o SOPS+age).
 
 ## Ejecución
 

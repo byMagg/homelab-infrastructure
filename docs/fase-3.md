@@ -1,6 +1,7 @@
 # Fase 3 — AdGuard Home en el cluster
 
 Fecha: 2026-11-17
+Estado: completada 2026-11-21 (DNS de la LAN apuntando a AdGuard)
 Imagen: `adguard/adguardhome:v0.107.80`
 Namespace: `adguard`
 UI: `http://adguard.homelab.home.arpa`
@@ -119,12 +120,10 @@ reinicia en bucle. Procedimiento:
 4. **El Ingress es HTTP.** La sesión del panel viaja sin cifrar dentro de la
    LAN. Se resolverá cuando Traefik termine TLS con cert-manager.
 
-5. **Windows prefiere el DNS IPv6 del router.** El portátil recibía por DHCP
-   `2a0c:5a80:0:2::1`, `2a0c:5a84:0:2::1` y `fe80::1` como servidores IPv6.
-   Windows consulta primero esos resolvers públicos, que para `home.arpa`
-   devuelven `NXDOMAIN` autoritativo, así que las URLs no resolvían aunque
-   AdGuard respondiera bien a `nslookup … 192.168.1.100`. Arreglo puntual en el
-   cliente (requiere administrador):
+5. **Windows prefiere el DNS IPv6 del router.** Mientras el router anunciaba
+   resolvers públicos IPv6 (`2a0c:…`, `fe80::1`), Windows los consultaba antes
+   que a AdGuard y `home.arpa` devolvía `NXDOMAIN` autoritativo. El arreglo
+   temporal era una regla NRPT en el cliente (requiere administrador):
 
    ```powershell
    Add-DnsClientNrptRule -Namespace '.homelab.home.arpa' -NameServers 192.168.1.100
@@ -132,24 +131,26 @@ reinicia en bucle. Procedimiento:
    # revertir: Get-DnsClientNrptRule | Remove-DnsClientNrptRule -Force
    ```
 
-   Como WSL2 usa el resolver de Windows vía `10.255.255.254`, la regla también
-   arregla la resolución dentro de WSL. La solución definitiva es que el router
-   anuncie `192.168.1.100` como único DNS, IPv4 e IPv6.
+   **Ya retirada** (2026-11-21): el router entrega `192.168.1.100` también en
+   IPv6, así que Windows y WSL2 resuelven sin reglas locales.
 
-6. **El DNS de la LAN no se ha cambiado.** El router sigue entregando sus
-   resolvers; AdGuard se ha probado de forma directa.
+6. **El DNS de la LAN ya apunta a AdGuard.** El router entrega
+   `192.168.1.100` como DNS primario, IPv4 e IPv6; AdGuard es el resolver real
+   de la LAN y no solo una prueba directa.
 
 ## Siguientes pasos
 
 Hecho la reescritura `*.homelab.home.arpa` → `192.168.1.100` en AdGuard
 (**Filters → DNS rewrites**); los `hosts` ya no son necesarios.
 
+Completado:
+
+1. ~~Apuntar el DHCP del router a `192.168.1.100` como DNS primario, **también
+   en IPv6** (o desactivar el anuncio de DNS IPv6), dejando el router o
+   `1.1.1.1` como secundario.~~ *(hecho 2026-11-21)*
+2. ~~Quitar la regla NRPT de los clientes Windows cuando el router ya entregue
+   AdGuard.~~ *(hecho 2026-11-21)*
+
 Pendiente:
 
-1. Apuntar el DHCP del router a `192.168.1.100` como DNS primario, **también
-   en IPv6** (o desactivar el anuncio de DNS IPv6), dejando el router o
-   `1.1.1.1` como secundario para no quedarse sin DNS si el cluster está
-   apagado.
-2. Quitar la regla NRPT de los clientes Windows cuando el router ya entregue
-   AdGuard.
 3. Cuando haya TLS, quitar `--insecure` de Argo y servir los paneles por HTTPS.

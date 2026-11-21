@@ -85,12 +85,13 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 - Al reconstruir cluster0 (server), el agente de cluster1 conserva token y CA
   viejos: ejecutar `/usr/local/bin/k3s-agent-uninstall.sh` en cluster1 y volver
   a lanzar la Fase 1.
-- Windows prefiere los DNS IPv6 que anuncia el router. Si `home.arpa` no
-  resuelve en el portátil pero `nslookup x.homelab.home.arpa 192.168.1.100`
-  responde, el problema es el cliente: añade una regla NRPT
+- Windows prefiere los DNS IPv6 que anuncia el router. Ya no debería hacer
+  falta (el router entrega AdGuard en IPv4 e IPv6 y la NRPT se retiró el
+  2026-11-21), pero si `home.arpa` deja de resolver en el portátil mientras
+  `nslookup x.homelab.home.arpa 192.168.1.100` responde, revisa los DNS del
+  DHCP: como último recurso, una regla NRPT
   (`Add-DnsClientNrptRule -Namespace '.homelab.home.arpa' -NameServers
-  192.168.1.100`) o desactiva el DNS IPv6 del DHCP. WSL2 hereda el resolver de
-  Windows.
+  192.168.1.100`). WSL2 hereda el resolver de Windows.
 - Observabilidad (`namespace observability`): `node-exporter` no tiene
   `/-/healthy` (probes a `/` y TCP); la salud de `kube-state-metrics` está en
   `:8080/healthz`, no en telemetría; Grafana usa rootfs de solo lectura con
@@ -119,9 +120,11 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 
 - Fases 0, 1 y 2 completadas: k3s `v1.37.2+k3s1` (flannel, Traefik, ServiceLB,
   local-path) y Argo CD `v3.6.1` gestionando las apps de `kubernetes/`.
-- Fase 3 desplegada: AdGuard Home `v0.107.80` en `kubernetes/apps/adguard`
+- Fase 3 completada: AdGuard Home `v0.107.80` en `kubernetes/apps/adguard`
   (namespace `adguard`), DNS en `192.168.1.100:53` vía ServiceLB y UI en
-  `adguard.homelab.home.arpa`. La UI escucha en el puerto **80** del pod.
+  `adguard.homelab.home.arpa`. La UI escucha en el puerto **80** del pod. El
+  router entrega `192.168.1.100` como DNS (IPv4 e IPv6) y la regla NRPT de
+  Windows ya se ha retirado.
 - Fase 5 parcial: Prometheus + Grafana + `node-exporter` +
   `kube-state-metrics` en `kubernetes/apps/observability` (namespace
   `observability`); dashboards `Homelab - Cluster` y `Homelab - Workloads` en
