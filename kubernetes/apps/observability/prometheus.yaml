@@ -220,17 +220,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    # Host público (protegido con Cloudflare Access).
-    - host: prometheus.dbarroso.dev
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: prometheus
-                port:
-                  name: http
+    # Solo LAN: Prometheus no se publica (su UI no tiene autenticación).
     - host: prometheus.homelab.home.arpa
       http:
         paths:
