@@ -1,0 +1,24 @@
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: portfolio
+  namespace: argocd
+spec:
+  applicationRefs:
+    - namePattern: portfolio
+      images:
+        - alias: portfolio
+          imageName: ghcr.io/dbarrosourr/cv-portfolio:sha-9b37375
+          commonUpdateSettings:
+            # Los tags son sha-<commit>: se ordenan por fecha de build, no por
+            # nombre, y solo se aceptan los que tengan ese formato.
+            updateStrategy: newest-build
+            allowTags: "regexp:^sha-[0-9a-f]{7,40}$"
+            platforms:
+              - linux/arm64
+  # `argocd` parchea la Application en el cluster: no hace falta ninguna
+  # credencial de Git ni rotar claves. El tag queda como override de Kustomize
+  # en la Application; el `ignoreDifferences` del app-of-apps evita que se
+  # revierta.
+  writeBackConfig:
+    method: argocd

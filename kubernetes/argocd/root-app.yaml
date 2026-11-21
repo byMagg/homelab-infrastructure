@@ -19,6 +19,13 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
+  # Image Updater parchea `spec.source.kustomize.images` de la Application
+  # `portfolio`. Sin esto, el selfHeal del app-of-apps revertiría el tag.
+  ignoreDifferences:
+    - group: argoproj.io
+      kind: Application
+      jsonPointers:
+        - /spec/source/kustomize/images
   syncPolicy:
     automated:
       prune: true
