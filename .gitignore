@@ -10,6 +10,7 @@ kubeconfig
 secrets/
 age.key
 keys.txt
+sealed-secrets-key*.yaml
 # Manifiestos de Secret con valores en claro (token de Cloudflare, etc.)
 *token.yaml
 

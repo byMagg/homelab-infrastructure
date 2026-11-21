@@ -115,6 +115,14 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   apuntan a `http://traefik.kube-system.svc.cluster.local:80`, así que el
   enrutado sigue viviendo en los `Ingress`. El dashboard **no** acepta
   wildcards en public hostnames.
+- Sealed Secrets (`namespace sealed-secrets`): el controller **no adopta** un
+  `Secret` creado a mano; hay que borrarlo y esperar a que lo recree
+  (`already exists and is not managed by SealedSecret`). La clave privada vive
+  en el Secret `sealed-secrets-key*` y no está en Git: sin backup, todos los
+  `SealedSecret` quedan indescifrables. `kubeseal` debe ir con la misma versión
+  que el controller (`v0.41.2`). El cifrado está atado a namespace + nombre.
+  `repo-homelab` sigue siendo bootstrap manual porque Argo lo necesita para
+  leer el repo.
 
 ## Estado y convenciones
 
@@ -125,6 +133,11 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `adguard.homelab.home.arpa`. La UI escucha en el puerto **80** del pod. El
   router entrega `192.168.1.100` como DNS (IPv4 e IPv6) y la regla NRPT de
   Windows ya se ha retirado.
+- Fase 4 parcial (secretos): Sealed Secrets `v0.41.2` en `kubernetes/apps/sealed-secrets`
+  (namespace `sealed-secrets`, app de Argo incluida). El token de `cloudflared`
+  es un `SealedSecret` y el controller recrea el `Secret`; la clave privada está
+  respaldada en `~/.config/homelab/sealed-secrets-key.yaml` (fuera del repo).
+  Falta el TLS interno con CA propia. Ver `docs/fase-4.md`.
 - Fase 5 parcial: Prometheus + Grafana + `node-exporter` +
   `kube-state-metrics` en `kubernetes/apps/observability` (namespace
   `observability`); dashboards `Homelab - Cluster` y `Homelab - Workloads` en

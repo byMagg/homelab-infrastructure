@@ -44,7 +44,7 @@ servicios. No requiere abrir puertos en el router ni IP fija. Ver
 | Entrada | Traefik (default de k3s) | `ingress-nginx` está EOL y no hace falta añadir nada |
 | LoadBalancer | ServiceLB (default de k3s) | Usa las IPs de los nodos; kube-vip llegará más adelante |
 | GitOps | Argo CD 3.6.1 | Patrón estándar; se adopta en la Fase 2 |
-| Secretos | Pendiente (Sealed Secrets y SOPS+age) | Sin secretos en claro en Git |
+| Secretos | Sealed Secrets `v0.41.2` (SOPS+age como alternativa) | Cifrados en Git; sin secretos en claro |
 | Storage | local-path (default de k3s) | Sin SSD; evita el peso de Longhorn |
 | Observabilidad | Prometheus + Grafana propios | Sin Helm; manifiestos en `kubernetes/apps/observability` |
 | Backup | Pendiente (snapshots de k3s a Cloudflare R2) | RPO 6 h; bajo coste |
@@ -81,7 +81,8 @@ servicios. No requiere abrir puertos en el router ni IP fija. Ver
 - [x] **Fase 3 — DNS y bloqueo**: AdGuard Home en el cluster, reescritura
       wildcard y cutover del DNS de la LAN (IPv4 e IPv6).
       *(completada 2026-11-21)*
-- [ ] **Fase 4 — TLS y secretos**: cert-manager con CA interna, Sealed Secrets.
+- [ ] **Fase 4 — Secretos y TLS**: Sealed Secrets completado; pendiente el TLS
+      interno con CA propia. *(secretos 2026-11-21)*
 - [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana y alertas a ntfy.
       *(stack desplegado 2026-11-17; pendientes las alertas)*
 - [ ] **Fase 6 — App demo + CI/CD**: multi-arch, Trivy, SBOM, Cosign, Argo.
@@ -120,6 +121,10 @@ scripts/       (planificado) Utilidades de bootstrap, backup y restore
   `adguard.homelab.home.arpa`. El router ya entrega AdGuard como DNS (IPv4 e
   IPv6), la regla NRPT de Windows se ha retirado y la resolución se verifica
   contra `cluster0` sin reglas locales.
+- Secretos: Sealed Secrets `v0.41.2` en el namespace `sealed-secrets`. El token
+  del túnel vive como `SealedSecret` en `kubernetes/apps/cloudflared` y el
+  controller recrea el `Secret`; la clave privada está respaldada fuera del
+  repo. Ver `docs/fase-4.md`.
 - Observabilidad: `node-exporter`, `kube-state-metrics`, Prometheus (7 días,
   PVC 5 Gi) y Grafana en `grafana.homelab.home.arpa` con el dashboard
   `Homelab - Cluster` (temperatura, CPU, RAM, disco, red, pods). La UI de
@@ -134,8 +139,8 @@ scripts/       (planificado) Utilidades de bootstrap, backup y restore
 - Reconstrucción 2026-11-17: cluster0 y cluster2 reflasheados, Fase 0/1
   reaplicadas, cluster1 reincorporado con el token nuevo y Argo CD + apps
   resincronizadas.
-- Siguiente: Fase 4 — TLS interno con CA propia y gestión de secretos
-  (Sealed Secrets o SOPS+age).
+- Siguiente: alertas a ntfy (fase 5) y backup a R2 (fase 7); el TLS interno
+  con CA propia queda pendiente de la fase 4.
 
 ## Ejecución
 
