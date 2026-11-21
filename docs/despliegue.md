@@ -150,20 +150,18 @@ Lo que **hoy** requiere intervención humana, y dónde está el motivo:
 | `bootstrap.yml` | Por nodo | Necesita la contraseña de `admin` |
 | Aplicar Fase 0/1 | Cuando cambia | Decisión: control sobre cambios peligrosos |
 | Reinicio tras Fase 0 | Obligatorio | Aplica EEPROM, `config.txt`, watchdog |
-| Mergear el PR del tag del portfolio | Cada release | El build ocurre en otro repo; el PR se abre solo |
 | `repo-homelab` (deploy key de Argo) | Solo al reconstruir Argo | Argo lo necesita para leer el repo |
 | Public hostnames en Cloudflare | Al añadir host | Sin provider de Terraform; activos raíz, `lab`, `grafana`, `argocd`. Prometheus no se publica por decisión |
 
 ## Integración continua
 
-Dos workflows en `.github/workflows/`; ninguno toca el cluster:
+Un workflow en `.github/workflows/`; no toca el cluster:
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
 | `ansible.yml` | PR o push a `main` que toque `ansible/` | `ansible-lint` (perfil `basic`) y `ansible-playbook --syntax-check`; no se conecta a los nodos |
-| `portfolio-tag.yml` | `repository_dispatch` del repo del CV o manual | Fija el tag recibido y abre un PR |
 
-`ansible.yml` usa `ansible-core==2.22.0` y `ansible-lint==26.11.0`, e instala
+Usa `ansible-core==2.22.0` y `ansible-lint==26.11.0`, e instala
 `community.general` en `ansible/collections`. El mismo lint se reproduce en
 local con:
 
@@ -171,20 +169,29 @@ local con:
 .venv/bin/ansible-lint
 ```
 
-`portfolio-tag.yml` es **event-driven**: el repo del sitio envía un
-`repository_dispatch` con el tag exacto al terminar el build, así que no hay
-polling ni consulta al registro. Requiere un PAT *fine-grained*
-(`Contents: write` solo sobre este repo) guardado como
-`HOMELAB_DISPATCH_TOKEN` en el repo del CV; el snippet y la rotación están en
-[`fase-6.md`](fase-6.md). El script `scripts/set-portfolio-tag.py` solo valida
-el tag y cambia esa línea; el merge del PR sigue siendo manual.
+## Actualización automática del tag del portfolio
+
+`argocd-image-updater` v1.5.0 (Application `image-updater`, namespace `argocd`)
+vigila GHCR cada ~2 min y actualiza la Application `portfolio`. Sin PAT, sin
+webhook y sin cron de GitHub:
+
+- GHCR es público → lectura anónima.
+- `kubernetes/apps/portfolio` es Kustomize (`kustomization.yaml` con `images:`).
+- `writeBackConfig.method: argocd` parchea `spec.source.kustomize.images`; no
+  commitea a Git, así que no hay credenciales que rotar.
+- `newest-build` + `allowTags: ^sha-[0-9a-f]{7,40}$` porque los tags son hashes
+  y no se ordenan por nombre.
+- El app-of-apps ignora ese campo (`ignoreDifferences`) para que su `selfHeal`
+  no revierta el tag.
+
+El detalle y la verificación están en [`fase-6.md`](fase-6.md).
 
 ## Huecos conocidos
 
 | # | Hueco | Estado |
 |---|---|---|
 | 1 | App-of-apps | **Resuelto**: `kubernetes/argocd/root-app.yaml` (`homelab-root`) |
-| 2 | Tag de imagen manual | **Resuelto**: `portfolio-tag.yml` abre un PR al recibir el aviso del repo del CV |
+| 2 | Tag de imagen manual | **Resuelto**: `argocd-image-updater` actualiza el tag en el cluster, sin credenciales |
 | 3 | Sin webhook | Abierto: hasta ~3 min de polling; opcional |
 | 4 | Sin CI en Ansible | **Resuelto**: `ansible.yml` (lint + sintaxis) |
 

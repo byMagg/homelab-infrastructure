@@ -93,8 +93,7 @@ Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
       `dbarroso.dev` y el CV publicado. *(túnel y 4 hostnames activos
       2026-11-21)*
 - [ ] **Fase 6b — Hardening del build**: multi-arch, Trivy, SBOM y Cosign.
-      *(el tag lo actualiza `.github/workflows/portfolio-tag.yml` cuando el repo
-      del CV avisa)*
+      *(el tag lo actualiza Argo CD Image Updater en el cluster)*
 - [ ] **Fase 7 — Backup y DR**: snapshots a R2, restauración probada.
 - [ ] **Fase 8 — Hardening y upgrades**: kube-bench, Kyverno, drill de upgrade.
 - [ ] **Fase 9 — Extras**: Tailscale, SLOs, documentación y posts.
@@ -105,7 +104,6 @@ Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
 ansible/       Inventario, roles y playbooks
 kubernetes/    Manifiestos y charts gestionados por Argo CD
 docs/          Arquitectura, ADRs, runbooks, postmortems
-scripts/       Utilidades (actualización del tag del portfolio)
 ```
 
 ## Documentación
@@ -162,8 +160,8 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-6.md`.
 - Automatización: la Application raíz `homelab-root` (app-of-apps) gestiona
   `kubernetes/argocd/`, así que añadir una app es solo commitear su
   `*-app.yaml`. GitHub Actions ejecuta `ansible-lint` + `--syntax-check` en
-  cada cambio de `ansible/` y abre un PR con el tag nuevo del portfolio cuando
-  el repo del CV publica una imagen.
+  cada cambio de `ansible/`, y Argo CD Image Updater actualiza el tag del
+  portfolio solo (sin secretos ni cron).
 - Reconstrucción 2026-11-17: cluster0 y cluster2 reflasheados, Fase 0/1
   reaplicadas, cluster1 reincorporado con el token nuevo y Argo CD + apps
   resincronizadas.

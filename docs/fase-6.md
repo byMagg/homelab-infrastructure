@@ -180,9 +180,8 @@ estaba; no hay nada que revertir en el router ni en UFW.
 
 El sitio (`dbarrosourr/dbarrosourr.github.io`) es un Astro estático. El workflow
 `image.yaml` construye una imagen `linux/arm64` y la publica en
-`ghcr.io/dbarrosourr/cv-portfolio:sha-<commit>`. Al terminar, avisa a este repo
-con un `repository_dispatch` y el tag exacto; el workflow `portfolio-tag` abre
-un PR que solo cambia esa línea.
+`ghcr.io/dbarrosourr/cv-portfolio:sha-<commit>`. El tag no se toca a mano:
+Argo CD Image Updater lo detecta y actualiza la Application.
 
 El paquete tiene que ser **público**, y aquí hay una trampa: `dbarrosourr` es una
 organización, así que el botón *Change visibility → Public* falla con "los
@@ -196,28 +195,37 @@ visibilidad conviene borrar los pods para no esperar.
 kubectl -n portfolio delete pods -l app.kubernetes.io/name=portfolio
 ```
 
-### Aviso al homelab (`repository_dispatch`)
+### Actualización automática del tag (Image Updater)
 
-El tag viaja en el evento, así que este repo no consulta el registro ni adivina
-cuál es el más reciente. En el repo del sitio, tras publicar la imagen:
+`argocd-image-updater` v1.5.0 corre en el namespace `argocd` (Application
+`image-updater`) y vigila el registro cada ~2 min. Como el paquete es público,
+lee GHCR de forma anónima: **no hay PAT ni claves que rotar**.
 
-```yaml
-- name: Avisar al homelab
-  env:
-    GH_TOKEN: ${{ secrets.HOMELAB_DISPATCH_TOKEN }}
-    IMAGE_TAG: ${{ steps.image.outputs.tag }}   # el mismo tag que se publicó
-  run: |
-    gh api repos/byMagg/homelab-infrastructure/dispatches \
-      -f event_type=portfolio-image \
-      -f "client_payload[tag]=${IMAGE_TAG}"
+- `kubernetes/apps/portfolio` es ahora una fuente **Kustomize**
+  (`kustomization.yaml` con `images:`), que es lo que Image Updater sabe
+  reescribir.
+- El recurso `ImageUpdater` (`kubernetes/apps/image-updater`) usa
+  `updateStrategy: newest-build` (ordena por fecha de build, no por nombre) y
+  `allowTags: regexp:^sha-[0-9a-f]{7,40}$`.
+- `writeBackConfig.method: argocd` parchea
+  `spec.source.kustomize.images` de la Application; no commitea a Git.
+- El app-of-apps ignora ese campo
+  (`ignoreDifferences: /spec/source/kustomize/images`); sin eso, su `selfHeal`
+  revertiría el tag.
+
+Consecuencia: el tag efectivo vive en la Application, no en Git. En un cluster
+nuevo se despliega el tag del repo y el siguiente ciclo de Image Updater lo
+corrige. Si algún día se quiere el tag en Git, se cambia a
+`writeBackConfig.method: git` con una deploy key de escritura (las SSH no
+caducan, pero es una credencial más).
+
+Verificación:
+
+```bash
+kubectl -n argocd get imageupdater portfolio -o yaml
+kubectl -n argocd logs deploy/argocd-image-updater-controller --tail=30
+kubectl -n argocd get app portfolio -o jsonpath='{.spec.source.kustomize.images}'
 ```
-
-`HOMELAB_DISPATCH_TOKEN` es un PAT *fine-grained* con `Contents: read and
-write` solo sobre `byMagg/homelab-infrastructure` (y `Metadata: read`). Caduca,
-así que hay que rotarlo. `repository_dispatch` solo dispara workflows que ya
-existen en la rama por defecto: si el aviso llega antes del primer push de
-`portfolio-tag.yml`, se pierde. Como respaldo, el workflow también acepta
-`workflow_dispatch` con el tag a mano.
 
 ## Decisión: Prometheus no se publica
 
@@ -234,6 +242,5 @@ aporta y añade superficie.
 
 - Hardening del build: multi-arch, Trivy, SBOM y Cosign.
 
-El tag ya no se sube a mano: `.github/workflows/portfolio-tag.yml` recibe el
-`repository_dispatch` del repo del CV y abre el PR con
-`scripts/set-portfolio-tag.py`.
+El tag lo actualiza Argo CD Image Updater en el cluster; no hay workflow ni
+credenciales que mantener.
