@@ -1,0 +1,25 @@
+# App-of-apps: gestiona todas las Applications de este directorio.
+#
+# Bootstrap manual una sola vez (igual que `repo-homelab`):
+#   kubectl apply -f kubernetes/argocd/root-app.yaml
+#
+# A partir de ahí, añadir una app es solo commitear su `*-app.yaml`: Argo CD
+# detecta el fichero, crea la Application y sincroniza su directorio.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: homelab-root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:byMagg/homelab-infrastructure.git
+    targetRevision: main
+    path: kubernetes/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
