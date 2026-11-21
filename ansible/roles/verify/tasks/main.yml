@@ -41,7 +41,7 @@
   changed_when: false
   tags: [verify]
 
-- name: Estado de servicios
+- name: Estado de servicios  # noqa: command-instead-of-module
   ansible.builtin.command:
     cmd: systemctl is-active {{ item }}
   loop:

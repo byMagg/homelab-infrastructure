@@ -1,0 +1,11 @@
+---
+# Perfil de lint para CI: detecta errores reales (sintaxis, FQCN, idempotencia,
+# permisos) sin imponer reglas puramente estilísticas.
+profile: basic
+
+# Solo se lintea Ansible: los manifiestos de Kubernetes y las colecciones de
+# terceros tienen sus propias reglas.
+exclude_paths:
+  - ansible/collections/
+  - kubernetes/
+  - docs/

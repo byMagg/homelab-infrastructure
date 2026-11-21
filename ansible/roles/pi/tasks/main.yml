@@ -35,7 +35,8 @@
     mode: "0644"
   tags: [pi]
 
-- name: Copiar config.txt original (solo la primera vez)
+# /boot/firmware es vfat: los permisos los fija el montaje, no Ansible.
+- name: Copiar config.txt original (solo la primera vez)  # noqa: risky-file-permissions
   ansible.builtin.copy:
     src: /boot/firmware/config.txt
     dest: /boot/firmware/config.txt.orig
@@ -69,7 +70,7 @@
     src: watchdog.conf.j2
     dest: /etc/systemd/system.conf.d/99-watchdog.conf
     mode: "0644"
-  notify: reexec systemd
+  notify: Reejecutar systemd
   tags: [pi]
 
 - name: Comprobar firmware EEPROM
@@ -85,6 +86,7 @@
     cmd: rpi-eeprom-update -a
   when: "'UPDATE AVAILABLE' in pi_eeprom.stdout"
   register: pi_eeprom_apply
+  changed_when: pi_eeprom_apply.rc == 0
   tags: [pi]
 
 - name: Mostrar estado de EEPROM

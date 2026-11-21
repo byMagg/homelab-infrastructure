@@ -1,20 +1,20 @@
 ---
-- name: restart sshd
+- name: Reiniciar sshd
   ansible.builtin.systemd:
     name: ssh
     state: restarted
 
-- name: restart journald
+- name: Reiniciar journald
   ansible.builtin.systemd:
     name: systemd-journald
     state: restarted
 
-- name: apply sysctl
+- name: Aplicar sysctl
   ansible.builtin.command:
     cmd: sysctl --system
   changed_when: false
 
-- name: restart fail2ban
+- name: Reiniciar fail2ban
   ansible.builtin.systemd:
     name: fail2ban
     state: restarted

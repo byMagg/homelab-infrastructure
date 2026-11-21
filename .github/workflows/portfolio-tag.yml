@@ -1,0 +1,43 @@
+name: portfolio-tag
+
+on:
+  schedule:
+    # Una vez al día; el sitio publica una imagen nueva en cada push.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: portfolio-tag
+  cancel-in-progress: true
+
+jobs:
+  update:
+    name: Buscar tag nuevo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detectar el tag más reciente en GHCR
+        id: check
+        run: python3 scripts/update-portfolio-tag.py
+
+      - name: Abrir PR con el tag nuevo
+        if: steps.check.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: chore/portfolio-tag
+          delete-branch: true
+          commit-message: "chore(portfolio): actualizar imagen a ${{ steps.check.outputs.tag }}"
+          title: "chore(portfolio): actualizar imagen a ${{ steps.check.outputs.tag }}"
+          body: |
+            Detectado automáticamente un tag nuevo de
+            `ghcr.io/dbarrosourr/cv-portfolio`.
+
+            Tag: `${{ steps.check.outputs.tag }}`
+
+            Al mergear, Argo CD despliega la imagen. El paquete de GHCR debe
+            seguir siendo público para que el kubelet pueda hacer pull.

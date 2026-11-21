@@ -1,0 +1,49 @@
+name: ansible
+
+on:
+  pull_request:
+    paths:
+      - "ansible/**"
+      - "ansible.cfg"
+      - ".ansible-lint"
+      - ".github/workflows/ansible.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ansible/**"
+      - "ansible.cfg"
+      - ".ansible-lint"
+      - ".github/workflows/ansible.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint y sintaxis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Instalar Ansible y ansible-lint
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible-core==2.22.0 ansible-lint==26.11.0
+
+      - name: Instalar colecciones
+        run: ansible-galaxy collection install community.general -p ansible/collections
+
+      - name: ansible-lint
+        run: ansible-lint
+
+      - name: Comprobar sintaxis de los playbooks
+        run: |
+          for playbook in ansible/playbooks/*.yml; do
+            echo "::group::$playbook"
+            ansible-playbook "$playbook" --syntax-check
+            echo "::endgroup::"
+          done

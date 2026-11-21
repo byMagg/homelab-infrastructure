@@ -87,7 +87,7 @@
     src: journald.conf.j2
     dest: /etc/systemd/journald.conf.d/99-homelab.conf
     mode: "0644"
-  notify: restart journald
+  notify: Reiniciar journald
   tags: [sd]
 
 - name: Crear directorio de drop-ins de coredump
@@ -114,13 +114,13 @@
   tags: [sysctl]
 
 - name: Cargar br_netfilter
-  ansible.builtin.modprobe:
+  community.general.modprobe:
     name: br_netfilter
     state: present
   tags: [sysctl]
 
 - name: Cargar overlay
-  ansible.builtin.modprobe:
+  community.general.modprobe:
     name: overlay
     state: present
   tags: [sysctl]
@@ -130,7 +130,7 @@
     src: sysctl-homelab.conf.j2
     dest: /etc/sysctl.d/99-homelab.conf
     mode: "0644"
-  notify: apply sysctl
+  notify: Aplicar sysctl
   tags: [sysctl]
 
 # --- SSH ---
@@ -147,7 +147,7 @@
     dest: /etc/ssh/sshd_config.d/00-homelab.conf
     mode: "0644"
     validate: /usr/sbin/sshd -t -f %s
-  notify: restart sshd
+  notify: Reiniciar sshd
   tags: [ssh]
 
 # --- Firewall ---
@@ -232,7 +232,7 @@
     src: fail2ban-sshd.local.j2
     dest: /etc/fail2ban/jail.d/sshd.local
     mode: "0644"
-  notify: restart fail2ban
+  notify: Reiniciar fail2ban
   tags: [fail2ban]
 
 - name: Habilitar fail2ban
