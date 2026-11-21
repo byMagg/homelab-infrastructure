@@ -158,20 +158,22 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 - Automatización: la Application raíz `homelab-root` (app-of-apps) gestiona
   `kubernetes/argocd/`, así que añadir una app es solo commitear su
   `*-app.yaml`. `.github/workflows/ansible.yml` linta Ansible y
-  `portfolio-tag.yml` abre un PR diario con el tag nuevo del portfolio.
+  `portfolio-tag.yml` abre un PR con el tag nuevo al recibir el aviso del repo
+  del CV.
 - Portfolio: `kubernetes/apps/portfolio` (namespace `portfolio`, 3 réplicas de
   `nginx-unprivileged`). La imagen la construye el repo del sitio
   (`dbarrosourr/dbarrosourr.github.io`) en GitHub Actions y se publica en
   `ghcr.io/dbarrosourr/cv-portfolio:sha-<commit>`; `.github/workflows/portfolio-tag.yml`
-  abre un PR diario con el tag más reciente (`scripts/update-portfolio-tag.py`). El paquete de GHCR debe ser **público** o el kubelet no puede
+  abre un PR con el tag que recibe por `repository_dispatch`
+  (`scripts/set-portfolio-tag.py`). El paquete de GHCR debe ser **público** o el kubelet no puede
   hacer pull. `dbarrosourr` es una **organización**, así que GitHub bloquea el
   cambio a público hasta que la org lo permite en *Settings → Packages →
   Package Creation → Public*; el síntoma es `ErrImagePull` con
   `unknown status ... 401 Unauthorized` en el token anónimo, y el backoff del
   kubelet dura hasta 5 min (borrar los pods fuerza el reintento).
 - Kubeconfig local en `~/.kube/homelab.yaml`; `kubectl` en `~/.local/bin`.
-- `kubernetes/` y `scripts/` existen; `scripts/update-portfolio-tag.py`
-  mantiene el tag de la imagen del portfolio.
+- `kubernetes/` y `scripts/` existen; `scripts/set-portfolio-tag.py`
+  fija el tag de la imagen del portfolio.
 - Argo CD lee el repo con la deploy key del Secret `repo-homelab` (namespace
   `argocd`); la clave privada no está en Git.
 - Remoto `origin` por SSH: `git@github.com:byMagg/homelab-infrastructure.git`.

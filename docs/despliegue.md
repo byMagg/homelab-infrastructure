@@ -156,12 +156,12 @@ Lo que **hoy** requiere intervención humana, y dónde está el motivo:
 
 ## Integración continua
 
-Dos workflows en `.github/workflows/`, ambos de solo lectura sobre el cluster:
+Dos workflows en `.github/workflows/`; ninguno toca el cluster:
 
 | Workflow | Cuándo | Qué hace |
 |---|---|---|
 | `ansible.yml` | PR o push a `main` que toque `ansible/` | `ansible-lint` (perfil `basic`) y `ansible-playbook --syntax-check`; no se conecta a los nodos |
-| `portfolio-tag.yml` | diario (06:00 UTC) o manual | Lee los tags de GHCR y abre un PR con el más reciente |
+| `portfolio-tag.yml` | `repository_dispatch` del repo del CV o manual | Fija el tag recibido y abre un PR |
 
 `ansible.yml` usa `ansible-core==2.22.0` y `ansible-lint==26.11.0`, e instala
 `community.general` en `ansible/collections`. El mismo lint se reproduce en
@@ -171,18 +171,20 @@ local con:
 .venv/bin/ansible-lint
 ```
 
-`portfolio-tag.yml` no usa Image Updater ni Renovate: los tags son
-`sha-<commit>` (no ordenables) y el manifiesto es YAML plano, así que ninguno
-encaja sin migrar a Kustomize. El script `scripts/update-portfolio-tag.py`
-compara fechas de creación en el registro y propone el cambio como PR; el merge
-sigue siendo manual.
+`portfolio-tag.yml` es **event-driven**: el repo del sitio envía un
+`repository_dispatch` con el tag exacto al terminar el build, así que no hay
+polling ni consulta al registro. Requiere un PAT *fine-grained*
+(`Contents: write` solo sobre este repo) guardado como
+`HOMELAB_DISPATCH_TOKEN` en el repo del CV; el snippet y la rotación están en
+[`fase-6.md`](fase-6.md). El script `scripts/set-portfolio-tag.py` solo valida
+el tag y cambia esa línea; el merge del PR sigue siendo manual.
 
 ## Huecos conocidos
 
 | # | Hueco | Estado |
 |---|---|---|
 | 1 | App-of-apps | **Resuelto**: `kubernetes/argocd/root-app.yaml` (`homelab-root`) |
-| 2 | Tag de imagen manual | **Resuelto**: `portfolio-tag.yml` abre un PR diario |
+| 2 | Tag de imagen manual | **Resuelto**: `portfolio-tag.yml` abre un PR al recibir el aviso del repo del CV |
 | 3 | Sin webhook | Abierto: hasta ~3 min de polling; opcional |
 | 4 | Sin CI en Ansible | **Resuelto**: `ansible.yml` (lint + sintaxis) |
 

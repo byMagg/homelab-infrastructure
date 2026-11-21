@@ -180,9 +180,9 @@ estaba; no hay nada que revertir en el router ni en UFW.
 
 El sitio (`dbarrosourr/dbarrosourr.github.io`) es un Astro estático. El workflow
 `image.yaml` construye una imagen `linux/arm64` y la publica en
-`ghcr.io/dbarrosourr/cv-portfolio:sha-<commit>`; el Deployment de
-`kubernetes/apps/portfolio` fija ese tag a mano, salvo que el workflow diario
-`portfolio-tag` abra el PR con el nuevo.
+`ghcr.io/dbarrosourr/cv-portfolio:sha-<commit>`. Al terminar, avisa a este repo
+con un `repository_dispatch` y el tag exacto; el workflow `portfolio-tag` abre
+un PR que solo cambia esa línea.
 
 El paquete tiene que ser **público**, y aquí hay una trampa: `dbarrosourr` es una
 organización, así que el botón *Change visibility → Public* falla con "los
@@ -195,6 +195,29 @@ visibilidad conviene borrar los pods para no esperar.
 ```bash
 kubectl -n portfolio delete pods -l app.kubernetes.io/name=portfolio
 ```
+
+### Aviso al homelab (`repository_dispatch`)
+
+El tag viaja en el evento, así que este repo no consulta el registro ni adivina
+cuál es el más reciente. En el repo del sitio, tras publicar la imagen:
+
+```yaml
+- name: Avisar al homelab
+  env:
+    GH_TOKEN: ${{ secrets.HOMELAB_DISPATCH_TOKEN }}
+    IMAGE_TAG: ${{ steps.image.outputs.tag }}   # el mismo tag que se publicó
+  run: |
+    gh api repos/byMagg/homelab-infrastructure/dispatches \
+      -f event_type=portfolio-image \
+      -f "client_payload[tag]=${IMAGE_TAG}"
+```
+
+`HOMELAB_DISPATCH_TOKEN` es un PAT *fine-grained* con `Contents: read and
+write` solo sobre `byMagg/homelab-infrastructure` (y `Metadata: read`). Caduca,
+así que hay que rotarlo. `repository_dispatch` solo dispara workflows que ya
+existen en la rama por defecto: si el aviso llega antes del primer push de
+`portfolio-tag.yml`, se pierde. Como respaldo, el workflow también acepta
+`workflow_dispatch` con el tag a mano.
 
 ## Decisión: Prometheus no se publica
 
@@ -211,5 +234,6 @@ aporta y añade superficie.
 
 - Hardening del build: multi-arch, Trivy, SBOM y Cosign.
 
-El tag ya no se sube a mano: `.github/workflows/portfolio-tag.yml` abre un PR
-diario con el tag más reciente de GHCR (`scripts/update-portfolio-tag.py`).
+El tag ya no se sube a mano: `.github/workflows/portfolio-tag.yml` recibe el
+`repository_dispatch` del repo del CV y abre el PR con
+`scripts/set-portfolio-tag.py`.
