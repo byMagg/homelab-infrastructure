@@ -1,5 +1,10 @@
 # Fase 2 — Argo CD y primera app
 
+> **Documento histórico.** La app `whoami` se retiró el 2026-11-19 y su
+> directorio (`kubernetes/apps/whoami`) ya no existe. El flujo de Argo CD que
+> se describe aquí sigue vigente; el ejemplo actual es
+> `kubernetes/apps/portfolio`.
+
 Fecha: 2026-11-17
 Argo CD: `v3.6.1`
 App: `traefik/whoami:v1.12.0` en el namespace `demo`

@@ -1,7 +1,9 @@
 # Fase 6 — Dominio público con Cloudflare Tunnel
 
 Fecha: 2026-11-19
-Estado: preparado en el repo; el túnel no existe hasta tener dominio.
+Estado: **desplegado y conectado** al borde (2026-11-21). Cuatro public
+hostnames activos. Prometheus **no se publica** por decisión: su UI no tiene
+autenticación.
 Imagen: `cloudflare/cloudflared:2026.11.1`
 Namespace: `cloudflared`
 
@@ -82,8 +84,13 @@ En la pestaña *Public Hostname* del túnel, una entrada por servicio:
 | `prometheus` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
 | `argocd` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
 
-La raíz sirve el portfolio (`kubernetes/apps/portfolio`). Todos los hosts ya
-tienen su regla en el `Ingress` correspondiente, con el host interno al lado.
+La raíz sirve el portfolio (`kubernetes/apps/portfolio`). Cada host publicado
+tiene su regla en el `Ingress` correspondiente, con el host interno al lado.
+
+Estado real (2026-11-21): `dbarroso.dev` y `lab.dbarroso.dev` responden `200`;
+`grafana.dbarroso.dev` y `argocd.dbarroso.dev` responden `302` hacia Cloudflare
+Access. `prometheus.dbarroso.dev` **no se publica**: su UI no tiene
+autenticación y se mantiene accesible solo desde la LAN.
 
 El dashboard crea el CNAME proxied hacia `<uuid>.cfargotunnel.com`. **El
 Host header se conserva**, así que el `Ingress` de Kubernetes debe declarar ese
@@ -93,18 +100,27 @@ mismo `Ingress`).
 No usar el puerto 443 ni `https://` en *Service*: el tramo cluster→Traefik es
 HTTP.
 
-### 4. Crear el Secret del token
+### 4. Secret del token
 
-El token no se commitea. Tras el primer sync de Argo (que crea el namespace):
+El token no se commitea. En el cluster actual vive como **`SealedSecret`**
+(`kubernetes/apps/cloudflared/sealedsecret.yaml`): Argo lo descifra y crea el
+`Secret` `cloudflared-token` (clave `token`) sin intervención manual. El flujo
+de sellado está en `docs/fase-4.md`.
+
+En un cluster nuevo, antes de tener el `SealedSecret`, se crea a mano y se
+sella después:
 
 ```bash
 kubectl -n cloudflared create secret generic cloudflared-token \
   --from-literal=token='<token>'
-kubectl -n cloudflared rollout restart deploy/cloudflared
+# Sellar con kubeseal v0.41.2 (la misma versión que el controller) y commitear
+# el SealedSecret; después borrar el Secret en claro.
 ```
 
-Sin el Secret, el pod queda en `CreateContainerConfigError`; es esperado la
-primera vez y Argo no se queja porque el Secret no está gestionado por él.
+Sin el Secret, el pod queda en `CreateContainerConfigError`. El controller
+**no adopta** un `Secret` creado a mano: hay que borrarlo y esperar a que lo
+recree. El token tampoco se refresca en caliente: tras rotarlo, `rollout
+restart`.
 
 ### 5. Desplegar
 
@@ -165,7 +181,8 @@ estaba; no hay nada que revertir en el router ni en UFW.
 El sitio (`dbarrosourr/dbarrosourr.github.io`) es un Astro estático. El workflow
 `image.yaml` construye una imagen `linux/arm64` y la publica en
 `ghcr.io/dbarrosourr/cv-portfolio:sha-<commit>`; el Deployment de
-`kubernetes/apps/portfolio` fija ese tag a mano.
+`kubernetes/apps/portfolio` fija ese tag a mano, salvo que el workflow diario
+`portfolio-tag` abra el PR con el nuevo.
 
 El paquete tiene que ser **público**, y aquí hay una trampa: `dbarrosourr` es una
 organización, así que el botón *Change visibility → Public* falla con "los
@@ -179,8 +196,20 @@ visibilidad conviene borrar los pods para no esperar.
 kubectl -n portfolio delete pods -l app.kubernetes.io/name=portfolio
 ```
 
+## Decisión: Prometheus no se publica
+
+Su UI no tiene autenticación ni multiusuario, expone `/api/v1/query` y
+`/api/v1/targets`, y una consulta con regex amplia puede agotar la memoria de un
+nodo. Se consulta solo desde la LAN (`prometheus.homelab.home.arpa`) o con
+`kubectl port-forward svc/prometheus 9090:9090`.
+
+Para métricas de cara al exterior se usa **Grafana** (detrás de Access) o un
+*public dashboard* de solo lectura. Publicar la herramienta de diagnóstico no
+aporta y añade superficie.
+
 ## Pendiente
 
-- Sealed Secrets para dejar de crear el token a mano.
-- Argo CD Image Updater (o un workflow que abra PR) para no tener que subir a
-  mano el tag de `ghcr.io/dbarrosourr/cv-portfolio` en cada cambio del CV.
+- Hardening del build: multi-arch, Trivy, SBOM y Cosign.
+
+El tag ya no se sube a mano: `.github/workflows/portfolio-tag.yml` abre un PR
+diario con el tag más reciente de GHCR (`scripts/update-portfolio-tag.py`).

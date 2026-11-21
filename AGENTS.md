@@ -122,7 +122,7 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `SealedSecret` quedan indescifrables. `kubeseal` debe ir con la misma versión
   que el controller (`v0.41.2`). El cifrado está atado a namespace + nombre.
   `repo-homelab` sigue siendo bootstrap manual porque Argo lo necesita para
-  leer el repo.
+  leer el repo (igual que `homelab-root`, que se aplica una vez con `kubectl`).
 
 ## Estado y convenciones
 
@@ -148,24 +148,30 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 - Panel de inicio: Homepage `v2.8.0` en `kubernetes/apps/homepage` (namespace
   `homepage`), en `homepage.homelab.home.arpa`; enlaza Argo CD, Grafana,
   Prometheus, AdGuard y el portfolio.
-- Fase 6 en curso: Cloudflare Tunnel desplegado (`kubernetes/apps/cloudflared`,
-  2 réplicas) y conectado al borde, con el dominio `dbarroso.dev`. Los `Ingress`
-  ya declaran el host público junto al interno (`lab`, `grafana`,
-  `prometheus`, `argocd`) y la raíz sirve el portfolio. Falta crear los public
-  hostnames en el dashboard. Sin cert-manager: el TLS público lo termina
-  Cloudflare. Ver `docs/fase-6.md`.
+- Fase 6 desplegada: Cloudflare Tunnel (`kubernetes/apps/cloudflared`, 2
+  réplicas) conectado al borde con el dominio `dbarroso.dev`. Public hostnames
+  activos: raíz (portfolio), `lab` (Homepage), `grafana` y `argocd` (estos dos
+  detrás de Cloudflare Access). **Prometheus no se publica** (decisión): no
+  tiene regla pública en el `Ingress` ni public hostname, y su UI no tiene
+  autenticación.
+  Sin cert-manager: el TLS público lo termina Cloudflare. Ver `docs/fase-6.md`.
+- Automatización: la Application raíz `homelab-root` (app-of-apps) gestiona
+  `kubernetes/argocd/`, así que añadir una app es solo commitear su
+  `*-app.yaml`. `.github/workflows/ansible.yml` linta Ansible y
+  `portfolio-tag.yml` abre un PR diario con el tag nuevo del portfolio.
 - Portfolio: `kubernetes/apps/portfolio` (namespace `portfolio`, 3 réplicas de
   `nginx-unprivileged`). La imagen la construye el repo del sitio
   (`dbarrosourr/dbarrosourr.github.io`) en GitHub Actions y se publica en
-  `ghcr.io/dbarrosourr/cv-portfolio:sha-<commit>`; el tag se sube a mano en el
-  Deployment. El paquete de GHCR debe ser **público** o el kubelet no puede
+  `ghcr.io/dbarrosourr/cv-portfolio:sha-<commit>`; `.github/workflows/portfolio-tag.yml`
+  abre un PR diario con el tag más reciente (`scripts/update-portfolio-tag.py`). El paquete de GHCR debe ser **público** o el kubelet no puede
   hacer pull. `dbarrosourr` es una **organización**, así que GitHub bloquea el
   cambio a público hasta que la org lo permite en *Settings → Packages →
   Package Creation → Public*; el síntoma es `ErrImagePull` con
   `unknown status ... 401 Unauthorized` en el token anónimo, y el backoff del
   kubelet dura hasta 5 min (borrar los pods fuerza el reintento).
 - Kubeconfig local en `~/.kube/homelab.yaml`; `kubectl` en `~/.local/bin`.
-- `kubernetes/` existe; `scripts/` sigue siendo planificado.
+- `kubernetes/` y `scripts/` existen; `scripts/update-portfolio-tag.py`
+  mantiene el tag de la imagen del portfolio.
 - Argo CD lee el repo con la deploy key del Secret `repo-homelab` (namespace
   `argocd`); la clave privada no está en Git.
 - Remoto `origin` por SSH: `git@github.com:byMagg/homelab-infrastructure.git`.

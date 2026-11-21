@@ -13,25 +13,27 @@ seguridad y operación real sobre ARM64.
 | cluster2 | 192.168.1.102 | 2 GB | worker (cargas ligeras) | SD |
 
 Red: `192.168.1.0/24`, gateway `192.168.1.1`.
-Acceso desde WSL2 (`192.168.1.110`) por SSH y mDNS (`.local`).
+Acceso desde WSL2 por SSH y mDNS (`.local`); su IP actual es
+`192.168.1.114` (DHCP, puede cambiar).
 
-## Dominio local
+## Dominio local y público
 
-Sin dominio público todavía. Se usa un dominio interno:
+El cluster sirve dos zonas:
 
-- Zona: `homelab.home.arpa` (RFC 8375, reservado para redes domésticas).
-- Fase inicial: entradas en `/etc/hosts` de WSL y Windows apuntando a
-  `192.168.1.100`.
-- DNS y bloqueo: AdGuard Home en el cluster (`192.168.1.100:53`), con
-  reescritura `*.homelab.home.arpa` → `192.168.1.100` ya activa.
-- Cutover hecho: el DHCP del router entrega `192.168.1.100` como DNS (IPv4 e
-  IPv6) y la regla NRPT de Windows ya se ha retirado.
-- TLS: en lo público lo termina Cloudflare (sin cert-manager). Para HTTPS
-  dentro de la LAN sigue pendiente una CA interna.
+- **Interna:** `homelab.home.arpa` (RFC 8375, reservado para redes domésticas).
+  AdGuard Home resuelve `*.homelab.home.arpa` → `192.168.1.100`; el DHCP del
+  router entrega esa IP como DNS (IPv4 e IPv6) y la regla NRPT de Windows ya
+  se retiró. Los `hosts` locales ya no son necesarios.
+- **Pública:** `dbarroso.dev`, publicada con **Cloudflare Tunnel** sin abrir
+  puertos en el router ni depender de IP fija. TLS lo termina Cloudflare (sin
+  cert-manager).
 
-Ya hay un **túnel de Cloudflare** desplegado (`kubernetes/apps/cloudflared`,
-namespace `cloudflared`) esperando el dominio para publicar una selección de
-servicios. No requiere abrir puertos en el router ni IP fija. Ver
+Hosts públicos activos: `dbarroso.dev` (portfolio), `lab.dbarroso.dev`
+(Homepage), y `grafana` / `argocd` detrás de Cloudflare Access. **Prometheus no
+se publica**: no tiene regla pública en el `Ingress` ni public hostname, y se
+consulta solo desde la LAN (su UI no tiene autenticación).
+
+Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
 `docs/fase-6.md`.
 
 ## Decisiones de arquitectura
@@ -48,6 +50,7 @@ servicios. No requiere abrir puertos en el router ni IP fija. Ver
 | Storage | local-path (default de k3s) | Sin SSD; evita el peso de Longhorn |
 | Observabilidad | Prometheus + Grafana propios | Sin Helm; manifiestos en `kubernetes/apps/observability` |
 | Backup | Pendiente (snapshots de k3s a Cloudflare R2) | RPO 6 h; bajo coste |
+| Aprovisionamiento | Ansible (Terraform descartado por ahora) | No hay API de hardware; ver ADR-001 |
 | HA control-plane | No (fase futura con kube-vip) | El nodo de 2 GB no debe ser CP |
 
 ## Particularidades de Raspberry Pi OS
@@ -77,7 +80,8 @@ servicios. No requiere abrir puertos en el router ni IP fija. Ver
       cluster2, kubeconfig en WSL, verificación de nodos, DNS y Traefik.
       *(completada 2026-11-17)*
 - [x] **Fase 2 — GitOps + primera app**: Argo CD, repo privado, `whoami` e
-      Ingress de Traefik. *(completada 2026-11-17)*
+      Ingress de Traefik. *(completada 2026-11-17; `whoami` se retiró el
+      2026-11-19 y su papel lo cubre el portfolio)*
 - [x] **Fase 3 — DNS y bloqueo**: AdGuard Home en el cluster, reescritura
       wildcard y cutover del DNS de la LAN (IPv4 e IPv6).
       *(completada 2026-11-21)*
@@ -85,7 +89,11 @@ servicios. No requiere abrir puertos en el router ni IP fija. Ver
       interno con CA propia. *(secretos 2026-11-21)*
 - [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana y alertas a ntfy.
       *(stack desplegado 2026-11-17; pendientes las alertas)*
-- [ ] **Fase 6 — App demo + CI/CD**: multi-arch, Trivy, SBOM, Cosign, Argo.
+- [x] **Fase 6 — Dominio público y portfolio**: Cloudflare Tunnel,
+      `dbarroso.dev` y el CV publicado. *(túnel y 4 hostnames activos
+      2026-11-21)*
+- [ ] **Fase 6b — Hardening del build**: multi-arch, Trivy, SBOM y Cosign.
+      *(el tag ya se actualiza solo con `.github/workflows/portfolio-tag.yml`)*
 - [ ] **Fase 7 — Backup y DR**: snapshots a R2, restauración probada.
 - [ ] **Fase 8 — Hardening y upgrades**: kube-bench, Kyverno, drill de upgrade.
 - [ ] **Fase 9 — Extras**: Tailscale, SLOs, documentación y posts.
@@ -96,8 +104,18 @@ servicios. No requiere abrir puertos en el router ni IP fija. Ver
 ansible/       Inventario, roles y playbooks
 kubernetes/    Manifiestos y charts gestionados por Argo CD
 docs/          Arquitectura, ADRs, runbooks, postmortems
-scripts/       (planificado) Utilidades de bootstrap, backup y restore
+scripts/       Utilidades (actualización del tag del portfolio)
 ```
+
+## Documentación
+
+| Documento | Para qué |
+|---|---|
+| [`docs/ansible-guia.md`](docs/ansible-guia.md) | Empezar con Ansible: modelo mental, mapa del repo y comandos seguros |
+| [`docs/despliegue.md`](docs/despliegue.md) | Cómo se automatiza el despliegue (Ansible + Argo CD) y qué queda manual |
+| [`docs/adr-001-ansible-en-lugar-de-terraform.md`](docs/adr-001-ansible-en-lugar-de-terraform.md) | Por qué Ansible y no Terraform |
+
+Las fases están documentadas en `docs/fase-0.md` … `docs/fase-6.md`.
 
 ## Estado actual
 
@@ -111,10 +129,10 @@ scripts/       (planificado) Utilidades de bootstrap, backup y restore
 - Fase 1 completada: k3s `v1.37.2+k3s1` en cluster0 (server) y cluster1 /
   cluster2 (agents), kubeconfig en `~/.kube/homelab.yaml`, DNS interno y
   Traefik verificados.
-- Fase 2 completada: Argo CD `v3.6.1` sincroniza `whoami` desde el repo
-  privado con deploy key de solo lectura; Ingress en
-  `whoami.homelab.home.arpa` y UI en `argocd.homelab.home.arpa`, con entradas
-  en el hosts de WSL y Windows.
+- Fase 2 completada: Argo CD `v3.6.1` sincroniza las apps del repo privado con
+  deploy key de solo lectura; UI en `argocd.homelab.home.arpa` (y
+  `argocd.dbarroso.dev` detrás de Access). La app `whoami` de esta fase se
+  retiró el 2026-11-19; hoy el ejemplo desplegado es el portfolio.
 - Fase 3 completada: AdGuard Home `v0.107.80` en el namespace `adguard`, DNS
   en `192.168.1.100:53` vía ServiceLB, reescritura
   `*.homelab.home.arpa` → `192.168.1.100` y UI en
@@ -125,22 +143,30 @@ scripts/       (planificado) Utilidades de bootstrap, backup y restore
   del túnel vive como `SealedSecret` en `kubernetes/apps/cloudflared` y el
   controller recrea el `Secret`; la clave privada está respaldada fuera del
   repo. Ver `docs/fase-4.md`.
-- Observabilidad: `node-exporter`, `kube-state-metrics`, Prometheus (7 días,
-  PVC 5 Gi) y Grafana en `grafana.homelab.home.arpa` con el dashboard
-  `Homelab - Cluster` (temperatura, CPU, RAM, disco, red, pods). La UI de
-  Prometheus se expone en `prometheus.homelab.home.arpa`.
+- Observabilidad: `node-exporter`, `kube-state-metrics`, Prometheus (7 días /
+  3 GB, PVC 5 Gi) y Grafana `13.1.0` en `grafana.homelab.home.arpa`, con los
+  dashboards `Homelab - Cluster` y `Homelab - Workloads`. La UI de Prometheus
+  se expone en `prometheus.homelab.home.arpa`.
 - cluster2 incorporado como worker ligero (2 GB), etiquetado
-  `homelab.io/role=light` y aislado con un taint `NoSchedule`; `whoami` corre
-  allí y `node-exporter` lo monitoriza.
+  `homelab.io/role=light` y aislado con un taint `NoSchedule`; allí corre una
+  réplica del portfolio y `node-exporter` lo monitoriza.
 - Homepage `v2.8.0` en el namespace `homepage` como panel de inicio en
-  `homepage.homelab.home.arpa`: agrupa Argo CD, Grafana, Prometheus, AdGuard y
-  whoami con monitorización HTTP, y muestra CPU/RAM del cluster vía el widget
-  de Kubernetes (ServiceAccount de solo lectura).
+  `homepage.homelab.home.arpa` (y `lab.dbarroso.dev`): agrupa Argo CD, Grafana,
+  Prometheus, AdGuard y el portfolio con monitorización HTTP, y muestra CPU/RAM
+  del cluster vía el widget de Kubernetes (ServiceAccount de solo lectura).
+- Fase 6 desplegada: Cloudflare Tunnel `2026.11.1` con 2 réplicas conectadas al
+  borde. Publicados `dbarroso.dev` (portfolio), `lab` (Homepage), y `grafana` /
+  `argocd` con Access. `prometheus` no se publica: no tiene regla pública en el
+  `Ingress` ni public hostname.
+- Automatización: la Application raíz `homelab-root` (app-of-apps) gestiona
+  `kubernetes/argocd/`, así que añadir una app es solo commitear su
+  `*-app.yaml`. GitHub Actions ejecuta `ansible-lint` + `--syntax-check` en
+  cada cambio de `ansible/` y abre un PR diario con el tag nuevo del portfolio.
 - Reconstrucción 2026-11-17: cluster0 y cluster2 reflasheados, Fase 0/1
   reaplicadas, cluster1 reincorporado con el token nuevo y Argo CD + apps
   resincronizadas.
-- Siguiente: alertas a ntfy (fase 5) y backup a R2 (fase 7); el TLS interno
-  con CA propia queda pendiente de la fase 4.
+- Siguiente: alertas a ntfy (fase 5), hardening del build del portfolio
+  (fase 6b), backup a R2 (fase 7) y el TLS interno con CA propia (fase 4).
 
 ## Ejecución
 

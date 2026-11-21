@@ -49,7 +49,7 @@ lee todos los ficheros del directorio montado, así que añadir una clave basta:
 no hay que reiniciar el pod (kubelet tarda hasta un minuto en refrescar el
 volumen).
 
-`Homelab - Cluster` (`homelab-cluster`):
+`Homelab - Cluster` (uid `homelab-cluster`, fichero `homelab-overview.json`):
 
 1. Estadísticas: temperatura máxima, CPU, memoria, disco, nodos `Ready`, pods
    que no están `Running` y uptime mínimo.
