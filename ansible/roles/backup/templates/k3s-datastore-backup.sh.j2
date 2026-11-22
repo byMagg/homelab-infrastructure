@@ -7,6 +7,7 @@ umask 077
 K3S=/usr/local/bin/k3s
 DATA_DIR=/var/lib/rancher/k3s/server
 DEST={{ backup_dir }}
+METRICS_DIR={{ backup_textfile_dir }}
 SECRET_NS=kube-system
 SECRET_NAME={{ backup_r2_secret }}
 RETENTION_LOCAL={{ backup_local_retention }}
@@ -20,6 +21,23 @@ flock -n 9 || { echo "ya hay un backup en curso"; exit 0; }
 mkdir -p "$DEST"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
+
+# Métricas para la regla K3sBackupStale. Se escribe solo tras un backup
+# completo (local + subida a R2 si está configurada).
+write_metrics() {
+  local tmp="$METRICS_DIR/.k3s_backup.prom.$$"
+  install -d -m 0755 "$METRICS_DIR"
+  {
+    echo "# HELP k3s_backup_last_success_timestamp_seconds Timestamp of the last successful backup"
+    echo "# TYPE k3s_backup_last_success_timestamp_seconds gauge"
+    echo "k3s_backup_last_success_timestamp_seconds $(date +%s)"
+    echo "# HELP k3s_backup_last_size_bytes Size of the last backup archive"
+    echo "# TYPE k3s_backup_last_size_bytes gauge"
+    echo "k3s_backup_last_size_bytes $(stat -c %s "$DEST/$NAME")"
+  } > "$tmp"
+  chmod 0644 "$tmp"
+  mv "$tmp" "$METRICS_DIR/k3s_backup.prom"
+}
 
 # Copia online y consistente con la API de backup de SQLite: no se copian a
 # mano state.db/-wal mientras k3s escribe.
@@ -63,6 +81,7 @@ done
 # Réplica en R2. El Secret lo crea Argo desde un SealedSecret; si aún no
 # existe, el nodo conserva solo las copias locales.
 if ! "$K3S" kubectl -n "$SECRET_NS" get secret "$SECRET_NAME" >/dev/null 2>&1; then
+  write_metrics
   logger -t k3s-backup "R2 no configurado ($SECRET_NS/$SECRET_NAME); solo copia local"
   exit 0
 fi
@@ -96,4 +115,5 @@ REMOTE="r2:$(get_secret bucket)/${FOLDER}"
 rclone copyto "$DEST/$NAME" "$REMOTE/$NAME" --s3-no-head --config /dev/null
 rclone copyto "$DEST/$NAME.sha256" "$REMOTE/$NAME.sha256" --s3-no-head --config /dev/null
 rclone delete "$REMOTE" --min-age "${RETENTION_DAYS}d" --include 'k3s-state-*' --config /dev/null
+write_metrics
 logger -t k3s-backup "subida a R2 correcta: $REMOTE/$NAME"

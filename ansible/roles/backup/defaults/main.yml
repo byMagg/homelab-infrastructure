@@ -4,3 +4,4 @@ backup_schedule: "*-*-* 03:15:00"
 backup_local_retention: 4
 backup_r2_secret: r2-backup
 backup_r2_retention_days: 14
+backup_textfile_dir: /var/lib/node-exporter/textfile

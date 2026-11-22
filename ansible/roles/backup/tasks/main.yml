@@ -16,6 +16,16 @@
     group: root
     mode: "0700"
 
+# node-exporter (uid 65534) lee este directorio; el script escribe el fichero
+# .prom en modo 0644.
+- name: Crear directorio de métricas del backup
+  ansible.builtin.file:
+    path: "{{ backup_textfile_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: Instalar script de backup
   ansible.builtin.template:
     src: k3s-datastore-backup.sh.j2
