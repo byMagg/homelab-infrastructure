@@ -124,6 +124,26 @@ data:
             target_label: node
           - source_labels: [__meta_kubernetes_node_name]
             target_label: instance
+
+      # Traefik ya sirve métricas Prometheus por defecto en el chart que
+      # empaqueta k3s (entrypoint `metrics`, puerto 9100 del pod). No hace falta
+      # HelmChartConfig ni abrir nada en UFW: es tráfico pod a pod.
+      - job_name: traefik
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [kube-system]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            action: keep
+            regex: traefik
+          - source_labels: [__meta_kubernetes_pod_ip]
+            target_label: __address__
+            replacement: ${1}:9100
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

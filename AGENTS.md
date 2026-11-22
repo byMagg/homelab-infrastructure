@@ -98,11 +98,16 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `:8080/healthz`, no en telemetría; Grafana usa rootfs de solo lectura con
   `GF_PLUGINS_PREINSTALL_DISABLED=true`. Prometheus scrapea la IP del nodo, así
   que UFW abre `9100` y `10250` desde `cluster_cidr`/`service_cidr`.
-  Alertmanager usa un receiver `null` (sin notificaciones) y `emptyDir`; el
-  backup escribe `k3s_backup_last_success_timestamp_seconds` en
+  Alertmanager usa `emptyDir` y un receiver `ntfy` (topic en `SealedSecret`);
+  el backup escribe `k3s_backup_last_success_timestamp_seconds` en
   `/var/lib/node-exporter/textfile` y node-exporter lo expone con el textfile
   collector. Prometheus no recarga solo: reinicia el pod o haz POST a
   `/-/reload` tras tocar reglas o config.
+- k3s no separa el plano de control: el proceso `k3s` sirve `apiserver_*`,
+  `scheduler_*` y `kine_*` en el `/metrics` del kubelet (`10250`), así que el
+  job `kubelet` ya los trae. Traefik también sirve `/metrics` en el puerto
+  `9100` del pod por defecto en el chart de k3s. No añadas un scrape a `6443`
+  ni un `HelmChartConfig` para esto.
 - Homepage con `readOnlyRootFilesystem: true` necesita montar **todos** los
   ficheros de `/app/src/skeleton` (`settings`, `services`, `widgets`,
   `bookmarks`, `kubernetes`, `docker`, `proxmox`, `custom.css`, `custom.js`);
@@ -172,17 +177,20 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   Falta el TLS interno con CA propia. Ver `docs/fase-4.md`.
 - Fase 5 parcial: Prometheus + Grafana + `node-exporter` +
   `kube-state-metrics` + Alertmanager en `kubernetes/apps/observability`
-  (namespace `observability`); dashboards `Homelab - Cluster` y
-  `Homelab - Workloads` en `grafana.homelab.home.arpa` (contraseña de admin
-  cambiada a mano y no versionada; acceso anónimo de solo lectura). Cada
+  (namespace `observability`); dashboards `Homelab - Cluster`,
+  `Homelab - Workloads`, `Homelab - Pods`, `Homelab - Control plane` y
+  `Homelab - Ingress (Traefik)` en `grafana.homelab.home.arpa` (contraseña de
+  admin cambiada a mano y no versionada; acceso anónimo de solo lectura). Cada
   dashboard es **una clave** del ConfigMap `grafana-dashboard-homelab`: el
   proveedor `file` lee el directorio montado y no hace falta reiniciar Grafana.
-  Alertmanager (`alertmanager.homelab.home.arpa`) evalúa 7 reglas y notifica a
-  **ntfy.sh** con el receiver `ntfy`: el topic es un `SealedSecret`
-  (`ntfy-topic`) montado como plantilla, porque no puede ir en Git. Publica
-  contra la raíz con un `payload` JSON propio (en `/<topic>`, ntfy trata el
-  cuerpo como texto plano). No recarga solo: tras tocar la config,
-  `rollout restart` o `kill -HUP 1`. Ver `docs/fase-5.md`.
+  El job `kubelet` ya trae `apiserver_*`, `scheduler_*` y `kine_*`; el job
+  `traefik` scrapea el puerto 9100 de Traefik. Alertmanager
+  (`alertmanager.homelab.home.arpa`) evalúa 7 reglas y notifica a **ntfy.sh**
+  con el receiver `ntfy`: el topic es un `SealedSecret` (`ntfy-topic`) montado
+  como plantilla, porque no puede ir en Git. Publica contra la raíz con un
+  `payload` JSON propio (en `/<topic>`, ntfy trata el cuerpo como texto plano).
+  No recarga solo: tras tocar la config, `rollout restart` o `kill -HUP 1`. Ver
+  `docs/fase-5.md`.
 - Panel de inicio: Homepage `v2.8.0` en `kubernetes/apps/homepage` (namespace
   `homepage`), en `homepage.homelab.home.arpa`; enlaza Argo CD, Grafana,
   Prometheus, AdGuard y el portfolio.

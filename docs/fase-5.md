@@ -37,6 +37,24 @@ Namespace `observability`, gestionado por Argo CD con
   `system:kubelet-api-admin` da acceso a `/metrics` y `/metrics/cadvisor`.
 - `kube-state-metrics` se scrapea por el Service del namespace.
 
+### Plano de control de k3s
+
+k3s no ejecuta el apiserver, el scheduler ni el datastore como procesos
+separados: comparten el proceso `k3s`, que sirve `/metrics` en el puerto del
+kubelet (`10250`). Por eso el job `kubelet` ya expone `apiserver_*`,
+`scheduler_*`, `process_*`, `go_*` y `kine_*` del nodo `cluster0`. No hace falta
+un scrape aparte ni abrir `6443` a la red de pods. `kine_*` es el equivalente a
+las métricas de etcd en un cluster con SQLite (`kine_sql_total`,
+`kine_sql_time_seconds_*`, `kine_compact_total`).
+
+### Traefik
+
+El chart de Traefik que empaqueta k3s ya arranca con
+`--metrics.prometheus=true` y un entrypoint `metrics` en el puerto `9100` del
+pod. El job `traefik` lo scrapea por IP de pod, así que no hace falta
+`HelmChartConfig` ni tocar UFW. Traefik v3 expone `traefik_entrypoint_*` y
+`traefik_service_*` (no hay métricas por router).
+
 Temperatura en el Pi:
 
 ```
@@ -72,6 +90,32 @@ volumen).
    asignables (`kube_node_status_allocatable`).
 3. Tablas: top 10 de pods por CPU y por memoria, y pods `Running` por
    namespace.
+
+`Homelab - Pods` (`homelab-pods`):
+
+1. Variables `namespace` y `pod` (ambas con `All`).
+2. Estadísticas: pods `Running`, pods que no están `Running`, CPU y memoria
+   agregadas, pods con reinicios en la última hora y CPU throttling.
+3. Series: top 10 por pod y por contenedor (CPU y memoria), memoria sobre el
+   límite (%) y red del pod.
+4. Tabla: CPU, memoria y reinicios por contenedor del pod seleccionado.
+
+`Homelab - Control plane` (`homelab-control-plane`):
+
+1. Estadísticas: peticiones/s, errores 5xx, latencia p99, peticiones en vuelo,
+   latencia p99 de SQLite y pods en cola de scheduling.
+2. Series: peticiones por verbo y código, percentiles de latencia del apiserver,
+   latencia de kine/SQLite, CPU/RSS del proceso k3s y goroutines.
+3. Tablas: top recursos consultados, operaciones de almacenamiento y colas de
+   scheduling.
+
+`Homelab - Ingress (Traefik)` (`homelab-ingress`):
+
+1. Estadísticas: peticiones/s, 5xx, latencia p95, conexiones abiertas, tráfico
+   de salida y recargas de configuración.
+2. Series: peticiones y latencia por entrypoint, códigos, top servicios y
+   conexiones abiertas.
+3. Tabla: top servicios por peticiones.
 
 Sustituye a Headlamp, que pedía pegar en cada navegador un token de
 ServiceAccount con `cluster-admin` y caducidad de una hora.
@@ -209,13 +253,14 @@ kubectl -n observability exec deploy/alertmanager -- ls /etc/alertmanager-templa
 ```
 
 Todos los targets (`prometheus`, `alertmanager`, `node-exporter` ×3,
-`kube-state-metrics`, `kubelet` ×3, `cadvisor` ×3) deben estar `up`.
+`kube-state-metrics`, `kubelet` ×3, `cadvisor` ×3, `traefik`) deben estar `up`.
 `node-exporter` tolera el taint de cluster2 (`operator: Exists`), así que
 también se scrapea el nodo de 2 GB; Prometheus, Grafana y Alertmanager se
 quedan en los nodos de 4 GB.
 
 ## Pendiente
 
- 1. Dashboard por pod (CPU/memoria de contenedores) usando cadvisor.
- 2. Métricas del servidor de k3s (apiserver, etcd/SQLite) y de AdGuard.
- 3. Valorar VictoriaMetrics o retención mayor si el volumen de series crece.
+1. **AdGuard**: no expone Prometheus nativo; necesita un exporter con
+   usuario/contraseña de su API (no están en Git). Queda pendiente por las
+   credenciales.
+2. Valorar VictoriaMetrics o retención mayor si el volumen de series crece.

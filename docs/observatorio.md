@@ -146,8 +146,8 @@ chrome --headless=new --screenshot=/tmp/live.png \
 
 ## Pendiente
 
-- Añadir request rate/errores de Traefik (requiere habilitar métricas en
-  Traefik) y, si se quiere, analytics de Cloudflare.
+- Añadir request rate/errores de Traefik al observatorio: las métricas ya están
+  en Prometheus (job `traefik`); falta exponerlas en el BFF.
 - Cache/rate limit en Cloudflare para `/live/api/status` si la página recibe
   mucho tráfico.
 - Monitor externo (Healthchecks/UptimeRobot) para avisar si el cluster entero
