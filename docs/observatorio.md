@@ -194,3 +194,5 @@ chrome --headless=new --screenshot=/tmp/live.png \
   admin; Argo CD no ofrece modo anónimo).
 - Cache/rate limit en Cloudflare para `/live/api/status` si la página recibe
   mucho tráfico.
+- Monitor externo (Healthchecks/UptimeRobot) para avisar si el cluster entero
+  cae, algo que el propio observatorio no puede hacer.

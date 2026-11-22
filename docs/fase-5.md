@@ -181,8 +181,8 @@ Límites y avisos:
   topic es lo único que protege el canal. No pongas credenciales ni datos
   sensibles en las anotaciones de las reglas.
 - Si el cluster entero cae, Alertmanager cae con él y **no hay notificación por
-  este canal**; eso solo lo cubre el monitor externo (ver
-  `docs/monitor-externo.md`).
+  este canal**; eso solo lo cubre un monitor externo (ver
+  `docs/observatorio.md`).
 - Rotar el topic: regenerar `topic.tmpl`, sellarlo otra vez con `kubeseal`,
   commit y recargar Alertmanager (las plantillas se leen al arrancar):
 

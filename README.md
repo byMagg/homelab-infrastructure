@@ -120,7 +120,6 @@ docs/          Arquitectura, ADRs, runbooks, postmortems
 | [`docs/ansible-guia.md`](docs/ansible-guia.md) | Empezar con Ansible: modelo mental, mapa del repo y comandos seguros |
 | [`docs/despliegue.md`](docs/despliegue.md) | Cómo se automatiza el despliegue (Ansible + Argo CD) y qué queda manual |
 | [`docs/fase-7.md`](docs/fase-7.md) | Backup y recuperación: SQLite, R2, restauración y drill |
-| [`docs/monitor-externo.md`](docs/monitor-externo.md) | Monitor externo: uptime desde GitHub Actions, incidentes y ntfy |
 | [`docs/observatorio.md`](docs/observatorio.md) | Observatorio público: capas, API, seguridad y despliegue |
 | [`docs/adr-001-ansible-en-lugar-de-terraform.md`](docs/adr-001-ansible-en-lugar-de-terraform.md) | Por qué Ansible y no Terraform |
 
@@ -182,10 +181,6 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
   `*-app.yaml`. GitHub Actions ejecuta `ansible-lint` + `--syntax-check` en
   cada cambio de `ansible/`, y Argo CD Image Updater actualiza el tag del
   portfolio solo (sin secretos ni cron).
-- Monitor externo: `.github/workflows/uptime.yml` comprueba cada 30 min
-  `dbarroso.dev`, `/live/healthz`, `/live`, `lab` y la caducidad del
-  certificado. Si falla, abre un issue `incident` y avisa por ntfy; al
-  recuperarse lo cierra. Ver `docs/monitor-externo.md`.
 - Reconstrucción 2026-11-17: cluster0 y cluster2 reflasheados, Fase 0/1
   reaplicadas, cluster1 reincorporado con el token nuevo y Argo CD + apps
   resincronizadas.
@@ -196,8 +191,8 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
   en el SealedSecret `kube-system/r2-backup`. Restauración probada el 2026-11-22
   (18 s de caída, marcador posterior eliminado) con
   `k3s-datastore-restore`. Ver `docs/fase-7.md`.
-- Siguiente: métricas de AdGuard (fase 5), hardening del build del portfolio
-  (fase 6b), PVCs de las apps (fase 7b), TLS interno (fase 4) y
+- Siguiente: métricas de AdGuard (fase 5), monitor externo, hardening del build
+  del portfolio (fase 6b), PVCs de las apps (fase 7b), TLS interno (fase 4) y
   hardening/upgrades (fase 8).
 
 ## Ejecución
