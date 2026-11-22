@@ -34,7 +34,7 @@ Internet ──► Cloudflare edge (TLS, WAF, Access)
 | DNS interno | AdGuard (`*.homelab.home.arpa`) | Sigue siendo el DNS de la LAN; no se toca |
 | Enrutado de apps | `Ingress` por `Host` | Único sitio donde vive la configuración, versionado en Git |
 | Paneles admin | Cloudflare Access (OTP por email) | Gratis hasta 50 usuarios; no hay que tocar las apps |
-| Réplicas | 2, una por nodo de 4 GB | Cada réplica abre su propia conexión QUIC |
+| Réplicas | 2, con `topologySpreadConstraints` (soft) | Cada réplica abre su conexión QUIC; al ser blando, tras una reconstrucción pueden coincidir en un nodo |
 
 La pieza clave: **cada public hostname apunta al mismo origen**, el Service de
 Traefik. `cloudflared` no sabe nada de servicios concretos; quien decide es el

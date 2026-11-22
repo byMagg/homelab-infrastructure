@@ -30,7 +30,7 @@ editas kubernetes/apps/portfolio/deployment.yaml
                     └─ aplica el diff → rollout → pods nuevos
 ```
 
-### Las seis Applications
+### Las diez Applications
 
 Cada fichero `kubernetes/argocd/*-app.yaml` declara **una** app y la carpeta
 que vigila. Desde 2026-11-21 las gestiona la Application raíz `homelab-root`
@@ -38,12 +38,20 @@ que vigila. Desde 2026-11-21 las gestiona la Application raíz `homelab-root`
 
 | Application | Vigila | Namespace |
 |---|---|---|
+| `homelab-root` | `kubernetes/argocd` | `argocd` |
 | `adguard` | `kubernetes/apps/adguard` | `adguard` |
 | `cloudflared` | `kubernetes/apps/cloudflared` | `cloudflared` |
 | `homepage` | `kubernetes/apps/homepage` | `homepage` |
+| `image-updater` | `kubernetes/apps/image-updater` | `argocd` |
+| `k3s-backup` | `kubernetes/apps/k3s-backup` | `kube-system` |
 | `observability` | `kubernetes/apps/observability` | `observability` |
+| `observatory` | `kubernetes/apps/observatory` | `observatory` |
 | `portfolio` | `kubernetes/apps/portfolio` | `portfolio` |
 | `sealed-secrets` | `kubernetes/apps/sealed-secrets` | `sealed-secrets` |
+
+`homelab-root` es la raíz (app-of-apps); las otras nueve son hijas. La
+Application `image-updater` vive en `argocd` porque vigila la Application
+`portfolio`, no un namespace propio.
 
 Todas usan la misma política:
 
@@ -201,7 +209,7 @@ punto único de fallo justo cuando la infraestructura está rota.
 ## Verificación y diagnóstico
 
 ```bash
-# Estado de las seis apps
+# Estado de las Applications
 kubectl -n argocd get applications
 
 # Detalle de una app (sync, health, última transición)

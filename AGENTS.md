@@ -193,7 +193,7 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `docs/fase-5.md`.
 - Panel de inicio: Homepage `v2.8.0` en `kubernetes/apps/homepage` (namespace
   `homepage`), en `homepage.homelab.home.arpa`; enlaza Argo CD, Grafana,
-  Prometheus, AdGuard y el portfolio.
+  Prometheus, AdGuard, el portfolio y el observatorio.
 - Fase 6 desplegada: Cloudflare Tunnel (`kubernetes/apps/cloudflared`, 2
   réplicas) conectado al borde con el dominio `dbarroso.dev`. Public hostnames
   activos: raíz (portfolio), `lab` (Homepage), `grafana` y `argocd` (estos dos

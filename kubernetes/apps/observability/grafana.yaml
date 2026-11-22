@@ -65,8 +65,9 @@ spec:
       labels:
         app.kubernetes.io/name: grafana
     spec:
-      # Sin Secret en Git: arranca con admin/admin y obliga a cambiarla al
-      # primer acceso. El panel se ve en anónimo como Viewer.
+      # Sin Secret en Git: la contraseña se cambió a mano tras el primer acceso
+      # y vive solo en el PVC (no entra en el backup). En un cluster nuevo
+      # vuelve a admin/admin. El panel se ve en anónimo como Viewer.
       securityContext:
         runAsNonRoot: true
         runAsUser: 472

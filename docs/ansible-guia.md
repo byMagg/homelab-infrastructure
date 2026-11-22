@@ -1,10 +1,11 @@
 # Guía de Ansible para este repo
 
-Para quien llega nuevo: **no hay que leer 700 líneas**. Hay que entender una
+Para quien llega nuevo: **no hay que leer 1.100 líneas**. Hay que entender una
 tarea y saber que las demás son iguales.
 
 Todo el Ansible del repo (sin contar `ansible/collections/`, que es código de
-terceros) son unas **700 líneas**. El resto es YAML repetido con la misma forma.
+terceros) son unas **1.100 líneas**: 819 de YAML y 257 de plantillas. El resto
+es YAML repetido con la misma forma.
 
 ## Modelo mental: cuatro piezas
 
@@ -29,7 +30,7 @@ El flujo completo:
 ```
 playbook  →  hosts: k3s_cluster  →  roles: [common, pi]
                     │                        │
-            hosts.yml (3 IPs)        tasks/main.yml (29 pasos)
+            hosts.yml (3 IPs)        tasks/main.yml (30 pasos)
 ```
 
 ## Mapa del repo
@@ -39,14 +40,16 @@ playbook  →  hosts: k3s_cluster  →  roles: [common, pi]
 | `ansible/playbooks/phase1.yml` | 7 | **Sí, primero** | Instala k3s |
 | `ansible/playbooks/phase0.yml` | 8 | Sí | Hardening base + ajustes de Pi |
 | `ansible/playbooks/verify.yml` | 7 | Sí | Comprueba el estado real |
+| `ansible/playbooks/phase7.yml` | 7 | Cuando toque | Backups del datastore |
 | `ansible/playbooks/bootstrap.yml` | 49 | Solo al flashear | Crea el usuario `ansible` |
 | `ansible/inventory/.../hosts.yml` | 27 | Sí | Nodos, IPs y grupos |
-| `ansible/inventory/.../group_vars/all.yml` | 22 | Sí | Versión de k3s, dominio, CIDRs |
+| `ansible/inventory/.../group_vars/all.yml` | 27 | Sí | Versión de k3s, dominio, CIDRs |
 | `ansible/roles/k3s/tasks/main.yml` | 79 | **Sí** | Instala server y agents |
-| `ansible/roles/pi/tasks/main.yml` | 93 | Cuando toque | cgroups, swap, watchdog, EEPROM |
-| `ansible/roles/verify/tasks/main.yml` | 78 | Cuando toque | Asserts de Fase 0 |
+| `ansible/roles/pi/tasks/main.yml` | 95 | Cuando toque | cgroups, swap, watchdog, EEPROM |
+| `ansible/roles/verify/tasks/main.yml` | 132 | Cuando toque | Asserts de Fase 0 |
 | `ansible/roles/common/tasks/main.yml` | 265 | Por partes | Paquetes, SSH, UFW, fail2ban, journald |
-| `ansible/roles/*/templates/*.j2` | 3-10 | Cuando toque | Config con `{{ variables }}` |
+| `ansible/roles/backup/tasks/main.yml` | 81 | Cuando toque | Timer y scripts de backup SQLite |
+| `ansible/roles/*/templates/*.j2` | 3-119 | Cuando toque | Config con `{{ variables }}` |
 | `ansible/roles/*/handlers/main.yml` | 4-20 | Cuando toque | Reinicios condicionados |
 | `ansible/collections/` | miles | **Nunca** | Módulos de terceros (en `.gitignore`) |
 
@@ -180,8 +183,8 @@ Quitar `--check` para aplicar de verdad. Ojo: `--check` no es fiable en tareas
 3. Ejecuta `--list-tasks` y `--check --limit cluster2 --tags base`.
 4. Cuando algo no cuadre, pregunta por **esa tarea concreta**.
 
-El objetivo no es entender las 700 líneas: es entender **una tarea** y saber
-que las otras 200 son iguales.
+El objetivo no es entender las 1.100 líneas: es entender **una tarea** y saber
+que las demás son iguales.
 
 ## Glosario
 

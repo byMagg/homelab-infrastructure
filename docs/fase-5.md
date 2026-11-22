@@ -9,7 +9,7 @@ Stack ligero para ver el estado del cluster y de los tres Pis sin el peso de
 | `kube-state-metrics` | `v2.15.0` | Estado de nodos, pods, deployments, reinicios |
 | `Prometheus` | `v3.5.0` | Scrape cada 30 s, retención 7 d / 3 GB |
 | `Alertmanager` | `v0.35.0` | Agrupa las alertas y las envía a ntfy.sh |
-| `Grafana` | `13.1.0` | Dashboard `Homelab - Cluster` |
+| `Grafana` | `13.1.0` | Dashboards de cluster, workloads, pods, plano de control e ingress |
 
 Namespace `observability`, gestionado por Argo CD con
 `kubernetes/argocd/observability-app.yaml`.
@@ -21,11 +21,11 @@ Namespace `observability`, gestionado por Argo CD con
   sin autenticación; solo accesible desde la LAN).
 - Alertmanager: <http://alertmanager.homelab.home.arpa> (alertas agrupadas;
   también solo LAN y sin autenticación).
-- Anónimo: rol **Viewer** (solo lectura).
-- Admin: contraseña cambiada a mano tras el primer acceso; no está en Git. Vive
-  solo en el PVC de Grafana, que no entra en el backup: en un cluster nuevo
-  vuelve a `admin`/`admin` y la obliga a cambiar. Pasarla a un `SealedSecret`
-  con `existingSecret` sigue pendiente (ver `docs/fase-4.md`).
+- En Grafana, anónimo: rol **Viewer** (solo lectura).
+- Admin de Grafana: contraseña cambiada a mano tras el primer acceso; no está en
+  Git. Vive solo en el PVC de Grafana, que no entra en el backup: en un cluster
+  nuevo vuelve a `admin`/`admin` y la obliga a cambiar. Pasarla a un
+  `SealedSecret` con `existingSecret` sigue pendiente (ver `docs/fase-4.md`).
 
 ## Cómo se recogen las métricas
 
@@ -235,8 +235,9 @@ targets quedan `down` aunque los pods estén `Running`.
 6. **local-path no comparte datos.** Prometheus y Grafana quedan atados al nodo
    donde se creó su PVC; no hay HA (una réplica cada uno).
 7. **Alertmanager usa `emptyDir`.** Los silencios y el estado interno no
-   sobreviven a un reinicio del pod; las reglas y el enrutado sí, porque viven
-   en el ConfigMap.
+   sobreviven a un reinicio del pod; la configuración y el enrutado sí, porque
+   viven en el ConfigMap, y las plantillas (incluido el topic de ntfy) en el
+   Secret `ntfy-topic`.
 
 ## Verificación
 

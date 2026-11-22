@@ -35,7 +35,7 @@ pública en el `Ingress` ni public hostname, y se consulta solo desde la LAN (su
 UI no tiene autenticación).
 
 Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
-`docs/fase-6.md`.
+`docs/fase-4.md`.
 
 ## Decisiones de arquitectura
 
@@ -151,16 +151,19 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
   controller recrea el `Secret`; la clave privada está respaldada fuera del
   repo. Ver `docs/fase-4.md`.
 - Observabilidad: `node-exporter`, `kube-state-metrics`, Prometheus (7 días /
-  3 GB, PVC 5 Gi) y Grafana `13.1.0` en `grafana.homelab.home.arpa`, con los
-  dashboards `Homelab - Cluster` y `Homelab - Workloads`. La UI de Prometheus
-  se expone en `prometheus.homelab.home.arpa`.
+  3 GB, PVC 5 Gi), Grafana `13.1.0` y Alertmanager `v0.35.0`. Cinco dashboards
+  (`Cluster`, `Workloads`, `Pods`, `Control plane` e `Ingress`) en
+  `grafana.homelab.home.arpa` y notificaciones a ntfy.sh. Prometheus se
+  consulta en `prometheus.homelab.home.arpa` (solo LAN) y Alertmanager en
+  `alertmanager.homelab.home.arpa`.
 - cluster2 incorporado como worker ligero (2 GB), etiquetado
-  `homelab.io/role=light` y aislado con un taint `NoSchedule`; allí corre una
-  réplica del portfolio y `node-exporter` lo monitoriza.
+  `homelab.io/role=light` y aislado con un taint `NoSchedule`; `node-exporter`
+  lo monitoriza y el portfolio tolera el taint (hoy tiene réplicas allí).
 - Homepage `v2.8.0` en el namespace `homepage` como panel de inicio en
   `homepage.homelab.home.arpa` (y `lab.dbarroso.dev`): agrupa Argo CD, Grafana,
-  Prometheus, AdGuard y el portfolio con monitorización HTTP, y muestra CPU/RAM
-  del cluster vía el widget de Kubernetes (ServiceAccount de solo lectura).
+  Prometheus, AdGuard, el portfolio y el observatorio con monitorización HTTP, y
+  muestra CPU/RAM del cluster vía el widget de Kubernetes (ServiceAccount de
+  solo lectura).
 - Observatorio público: `kubernetes/apps/observatory` sirve
   `dbarroso.dev/live` con una topología animada y capas de edge, cluster,
   GitOps, workloads, backup y observabilidad. Un BFF en Node consulta
@@ -186,9 +189,9 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
   en el SealedSecret `kube-system/r2-backup`. Restauración probada el 2026-11-22
   (18 s de caída, marcador posterior eliminado) con
   `k3s-datastore-restore`. Ver `docs/fase-7.md`.
-- Siguiente: notificaciones de las alertas (fase 5), hardening del build del
-  portfolio (fase 6b), PVCs de las apps (fase 7b) y el TLS interno con CA
-  propia (fase 4).
+- Siguiente: métricas de AdGuard (fase 5), monitor externo, hardening del build
+  del portfolio (fase 6b), PVCs de las apps (fase 7b), TLS interno (fase 4) y
+  hardening/upgrades (fase 8).
 
 ## Ejecución
 

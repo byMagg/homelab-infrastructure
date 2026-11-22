@@ -8,9 +8,10 @@ Namespace: `sealed-secrets`
 ## Objetivo
 
 Dejar de crear `Secret` a mano (`kubectl create secret ...`) y que Argo CD
-gestione los secretos desde Git **cifrados**. El primer caso es el token del
-túnel de Cloudflare; después vendrán el admin de Grafana, ntfy y las
-credenciales de R2.
+gestione los secretos desde Git **cifrados**. El token del túnel de Cloudflare
+fue el primero; después llegaron ntfy (fase 5) y las credenciales de R2
+(fase 7). El admin de Grafana sigue pendiente: hoy se cambió a mano y vive solo
+en el PVC.
 
 TLS interno se separa de esta fase: Cloudflare ya termina el TLS público y el
 tráfico de la LAN puede esperar a que haya SSO/Authentik o a que molesten los

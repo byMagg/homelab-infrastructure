@@ -152,5 +152,3 @@ chrome --headless=new --screenshot=/tmp/live.png \
   mucho tráfico.
 - Monitor externo (Healthchecks/UptimeRobot) para avisar si el cluster entero
   cae, algo que el propio observatorio no puede hacer.
-- Enlazar el observatorio desde el portfolio (hecho en el repo del CV) y desde
-  Homepage.

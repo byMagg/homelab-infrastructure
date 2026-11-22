@@ -265,10 +265,14 @@ inconsistente.
 
 **Seguridad:** `k3s secrets-encrypt status` está en `Disabled`, así que
 `state.db` contiene los Secrets en claro (CA, clave de Sealed Secrets, tokens
-de Cloudflare y R2). El archivo va comprimido, no cifrado. El bucket privado y
-el cifrado en reposo de R2 son la única protección hoy. Siguiente mejora
-recomendada: cifrar el `.tar.gz` con `age` (clave pública en Git, privada en el
-gestor de contraseñas) antes de subirlo.
+de Cloudflare y R2). El archivo va comprimido, no cifrado, y el bucket privado
+más el cifrado en reposo de R2 son la única protección.
+
+**Decisión (2026-11-22):** no se cifra el `.tar.gz` con `age`. Se asume el
+riesgo porque la clave privada añade un punto de fallo (perderla deja todos los
+backups inservibles) y el bucket es privado. Si se quiere cerrar el hueco, la
+opción sigue siendo `age` con la clave pública en Git y la privada en el gestor
+de contraseñas.
 
 ## Rollback
 
