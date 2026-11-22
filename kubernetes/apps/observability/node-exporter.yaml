@@ -34,6 +34,7 @@ spec:
             - --path.procfs=/host/proc
             - --path.sysfs=/host/sys
             - --path.rootfs=/rootfs
+            - --collector.textfile.directory=/textfile
             - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/kubelet)(/.+)?$
           ports:
             - name: metrics
@@ -69,6 +70,9 @@ spec:
             - name: root
               mountPath: /rootfs
               readOnly: true
+            - name: textfile
+              mountPath: /textfile
+              readOnly: true
       volumes:
         - name: proc
           hostPath:
@@ -79,6 +83,10 @@ spec:
         - name: root
           hostPath:
             path: /
+        - name: textfile
+          hostPath:
+            path: /var/lib/node-exporter/textfile
+            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service

@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: observability
+data:
+  homelab.yml: |
+    groups:
+      - name: homelab-nodes
+        rules:
+          - alert: NodeNotReady
+            expr: max by (node) (kube_node_status_condition{condition="Ready",status="true"}) == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Nodo {{ $labels.node }} no está Ready"
+              description: "kube-state-metrics lleva 5 minutos viendo el nodo como NotReady."
+
+          - alert: NodeTemperatureHigh
+            expr: node_thermal_zone_temp{type="cpu-thermal"} > 75
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Temperatura alta en {{ $labels.node }}"
+              description: "La CPU está a {{ $value | printf \"%.1f\" }} °C; el umbral es 75 °C."
+
+          - alert: NodeFilesystemAlmostFull
+            expr: |
+              (
+                node_filesystem_avail_bytes{fstype!~"tmpfs|ramfs|overlay",mountpoint="/"}
+                /
+                node_filesystem_size_bytes{fstype!~"tmpfs|ramfs|overlay",mountpoint="/"}
+              ) < 0.15
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Poco espacio en {{ $labels.node }}"
+              description: "Queda menos del 15% libre en {{ $labels.mountpoint }}."
+
+      - name: homelab-platform
+        rules:
+          - alert: TargetDown
+            expr: up == 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Target caído: {{ $labels.job }}"
+              description: "{{ $labels.instance }} lleva 5 minutos sin responder."
+
+          - alert: K3sBackupStale
+            expr: time() - k3s_backup_last_success_timestamp_seconds > 26 * 3600
+            for: 10m
+            labels:
+              severity: critical
+            annotations:
+              summary: "El backup de k3s está obsoleto"
+              description: "El último backup correcto tiene más de 26 horas."
+
+          - alert: K3sBackupMissing
+            expr: absent(k3s_backup_last_success_timestamp_seconds)
+            for: 15m
+            labels:
+              severity: warning
+            annotations:
+              summary: "No hay métrica de backup de k3s"
+              description: "node-exporter no ve k3s_backup.prom; revisa el timer y el textfile collector."
+
+          - alert: AlertmanagerDown
+            expr: up{job="alertmanager"} == 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Alertmanager caído"
+              description: "Prometheus no puede entregar alertas a Alertmanager."
