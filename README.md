@@ -101,8 +101,9 @@ Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
       los PVC de las apps quedan para la fase 7b)*
 - [ ] **Fase 8 — Hardening y upgrades**: kube-bench, Kyverno, drill de upgrade.
 - [ ] **Fase 9 — Extras**: Tailscale, SLOs, documentación y posts.
-- [x] **Extra — Observatorio público**: `dbarroso.dev/live`, topología y capas
-      en vivo, modo reclutador y ES/EN. *(2026-11-22)*
+- [x] **Extra — Observatorio público**: `dbarroso.dev/live`, explicaciones en
+      dos niveles, topología clicable con recorrido, fichas de workloads y
+      dashboards nativos, ES/EN. *(2026-11-22)*
 
 ## Estructura
 
@@ -165,11 +166,12 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
   muestra CPU/RAM del cluster vía el widget de Kubernetes (ServiceAccount de
   solo lectura).
 - Observatorio público: `kubernetes/apps/observatory` sirve
-  `dbarroso.dev/live` con una topología animada y capas de edge, cluster,
-  GitOps, workloads, backup y observabilidad. Un BFF en Node consulta
-  Prometheus, la API de Kubernetes y Alertmanager con permisos de solo lectura;
-  no expone secretos, IPs ni PromQL libre. Tiene modo reclutador y ES/EN. Ver
-  `docs/observatorio.md`.
+  `dbarroso.dev/live` con explicaciones en lenguaje claro (y detalle técnico
+  desplegable), topología clicable, recorrido guiado de una petición, fichas de
+  cada workload y dashboards nativos con pestañas y rangos. Un BFF en Node
+  consulta Prometheus, la API de Kubernetes y Alertmanager con permisos de solo
+  lectura; no expone secretos, IPs ni PromQL libre. ES/EN y enlaces directos
+  (`?tab`, `?range`, `?node`, `?workload`). Ver `docs/observatorio.md`.
 - Fase 6 desplegada: Cloudflare Tunnel `2026.11.1` con 2 réplicas conectadas al
   borde. Publicados `dbarroso.dev` (portfolio), `lab` (Homepage), y `grafana` /
   `argocd` con Access. `prometheus` no se publica: no tiene regla pública en el

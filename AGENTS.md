@@ -210,8 +210,10 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `dbarroso.dev/live` (Ingress PathPrefix `/live`, gana a `/` del portfolio) y
   `observatory.homelab.home.arpa`. BFF Node sin dependencias; consulta
   Prometheus, la API de Kubernetes y Alertmanager con una ServiceAccount de solo
-  lectura. UI terminal, topología SVG, modo reclutador (`?recruiter=1`) y ES/EN
-  (`?lang=en`). Ver `docs/observatorio.md`.
+  lectura. UI terminal con explicaciones en dos niveles, topología clicable,
+  recorrido guiado, fichas de workloads y dashboards nativos (sin PromQL desde
+  el navegador). Enlaces `?lang`, `?tab`, `?range`, `?node` y `?workload`; sin
+  modo reclutador. Ver `docs/observatorio.md`.
 - Automatización: la Application raíz `homelab-root` (app-of-apps) gestiona
   `kubernetes/argocd/`, así que añadir una app es solo commitear su
   `*-app.yaml`. `.github/workflows/ansible.yml` linta Ansible. El tag del

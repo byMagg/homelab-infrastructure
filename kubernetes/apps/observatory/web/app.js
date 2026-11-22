@@ -1512,6 +1512,7 @@ function renderDrawer() {
         ${drawerStat(t('drawer.cpu'), fmtCores(workload.cpu))}
         ${drawerStat(t('drawer.memory'), fmtBytes(workload.mem))}
         ${drawerStat(t('drawer.restarts'), String(workload.restarts || 0))}
+        ${drawerStat(t('drawer.age'), workload.createdAt ? fmtRelative(workload.createdAt) : '--')}
       </div>
       <h3>${esc(t('drawer.technical'))}</h3>
       <p>${esc(tx(info.tech))}</p>

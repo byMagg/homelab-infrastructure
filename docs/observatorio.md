@@ -70,20 +70,25 @@ hace falta reiniciar nada a mano.
 | Edge | túnel listo/total, latencia y status de una petición pública | API de Kubernetes + probe HTTP a `dbarroso.dev/live/healthz` |
 | Cluster | 3 nodos, rol, Ready, CPU, RAM, temperatura, disco, uptime y sparkline | Prometheus |
 | GitOps | apps de Argo, sync/health, revisión y última sincronización | CRD `applications.argoproj.io` |
-| Workloads | réplicas listas/deseadas, namespace e imagen | API de Kubernetes |
+| Workloads | réplicas, CPU/memoria, reinicios, pods y detalle por Deployment/DaemonSet | API de Kubernetes + cAdvisor |
 | Datos | último backup, antigüedad, tamaño, R2 y horario | métricas `k3s_backup_*` de node-exporter |
 | Observabilidad | targets up/total, alertas activas y reglas | Prometheus + Alertmanager |
+| Dashboards | CPU/mem/temperatura, peticiones web, API y top de pods | Prometheus (consultas cerradas) |
 
 La topología SVG conecta navegador → Cloudflare → Traefik → cluster → R2 y
-Prometheus. El botón **simular petición** anima un paquete por ese camino.
+Prometheus. El **recorrido guiado** resalta cada pieza y explica qué ocurre; al
+pulsar cualquier nodo se abre un cajón con su explicación y datos en vivo.
 
-## Modo reclutador e idiomas
+## Explicaciones, idiomas y enlaces directos
 
-- Botón **modo reclutador** (o `?recruiter=1`): muestra una explicación en
-  lenguaje claro dentro de cada capa.
-- Selector **ES / EN** (o `?lang=en`): traduce la interfaz. Los datos técnicos
-  (nombres de apps, estados de Argo) se mantienen tal cual.
-- La preferencia de idioma y el modo reclutador se guardan en `localStorage`.
+- Cada bloque tiene una explicación en lenguaje claro **siempre visible** y un
+  desplegable de detalle técnico. No hay modo que activar.
+- Selector **ES / EN** (o `?lang=en`): traduce la interfaz. Los nombres de apps
+  y estados de Argo se mantienen tal cual.
+- Recorrido de una petición en 5 pasos, con reproducción automática o manual.
+- Enlaces directos: `?node=edge`, `?workload=portfolio`, `?tab=web&range=6h`.
+  Al abrirlos se muestran el cajón o la pestaña correspondientes.
+- Buscador de workloads y botón para mostrar las piezas internas del cluster.
 
 ## API
 
@@ -95,20 +100,39 @@ Prometheus. El botón **simular petición** anima un paquete por ese camino.
   "edge": { "tunnelReady": 2, "tunnelTotal": 2, "probe": { "status": 200, "ms": 500 } },
   "nodes": [{ "name": "cluster0", "cpu": 9.1, "mem": 51.9, "temp": 31.2 }],
   "apps": [{ "name": "portfolio", "sync": "Synced", "health": "Healthy" }],
-  "workloads": [{ "name": "portfolio", "ready": 3, "desired": 3 }],
+  "workloads": [{
+    "id": "portfolio", "kind": "Deployment", "ready": 3, "desired": 3,
+    "cpu": 0.01, "mem": 16560128, "restarts": 0,
+    "resources": { "cpuRequestMillis": 10, "memRequestBytes": 25165824 },
+    "pods": [{ "name": "portfolio-...", "node": "cluster2", "phase": "Running" }]
+  }],
   "backup": { "lastSuccess": "...", "ageSeconds": 1200, "r2": true },
   "observability": { "targetsUp": 12, "targetsTotal": 12, "alerts": [] }
 }
 ```
 
-El endpoint no acepta parámetros de consulta ni ejecuta PromQL arbitrario: las
-consultas están en una lista cerrada en `server.js`.
+`GET /live/api/dashboards?range=15m|1h|6h` devuelve, cacheado 60 s:
+
+```json
+{
+  "range": "1h",
+  "charts": {
+    "cluster": { "cpu": [{ "label": "cluster0", "points": [[1700000000000, 9.1]] }] },
+    "web": { "requests": [{ "label": "total", "points": [] }] },
+    "api": { "requests": [], "errors": [], "latency": [] }
+  },
+  "top": { "cpu": [{ "label": "ns/pod", "value": 0.03 }], "memory": [] }
+}
+```
+
+Ningún endpoint acepta PromQL: las consultas están en una lista cerrada en
+`server.js` y el único parámetro es `range`, validado contra `RANGE_PRESETS`.
 
 ## Seguridad y datos públicos
 
 - **Nunca** se exponen Secrets, tokens, logs, IPs internas ni PromQL libre.
 - La ServiceAccount `observatory` solo puede `get/list` de `nodes`, `pods`,
-  `deployments` y `applications`. Sin escritura, sin secrets.
+  `deployments`, `daemonsets` y `applications`. Sin escritura, sin secrets.
 - El contenedor corre como uid/gid `65534` (igual que Prometheus) para poder
   leer el token proyectado de la ServiceAccount, con rootfs de solo lectura.
 - Cabeceras CSP, `X-Content-Type-Options`, `Referrer-Policy` y
@@ -121,8 +145,9 @@ consultas están en una lista cerrada en `server.js`.
 ```bash
 # API y estáticos
 curl -s http://observatory.homelab.home.arpa/healthz
-curl -s http://observatory.homelab.home.arpa/api/status | jq .
-curl -s -o /dev/null -w '%{http_code}\n' http://dbarroso.dev/live
+curl -s http://observatory.homelab.home.arpa/api/status | jq .summary
+curl -s 'http://observatory.homelab.home.arpa/api/dashboards?range=1h' | jq '.charts.cluster.cpu | length'
+curl -s -o /dev/null -w '%{http_code}\n' 'http://dbarroso.dev/live/?tab=web&range=6h'
 
 # La ruta /live tiene que ganar a / del portfolio
 curl -s -o /dev/null -w '%{http_code}\n' http://dbarroso.dev/
@@ -138,7 +163,8 @@ chrome --headless=new --screenshot=/tmp/live.png \
 
 ## Cómo añadir una capa o métrica
 
-1. Añade la consulta al array de `buildStatus()` en `server.js` (lista cerrada).
+1. Añade la consulta al array de `buildStatus()` o `buildDashboards()` en
+   `server.js` (lista cerrada).
 2. Incluye el dato en el JSON y tipa el render en `web/app.js`.
 3. Si es una métrica de Prometheus, comprueba que el target está `up`.
 4. Commit: Kustomize cambia el hash del ConfigMap y el pod se recrea solo.
@@ -146,8 +172,6 @@ chrome --headless=new --screenshot=/tmp/live.png \
 
 ## Pendiente
 
-- Añadir request rate/errores de Traefik al observatorio: las métricas ya están
-  en Prometheus (job `traefik`); falta exponerlas en el BFF.
 - Cache/rate limit en Cloudflare para `/live/api/status` si la página recibe
   mucho tráfico.
 - Monitor externo (Healthchecks/UptimeRobot) para avisar si el cluster entero

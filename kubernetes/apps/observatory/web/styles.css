@@ -570,7 +570,7 @@ details p {
 .drawer-backdrop { position: absolute; inset: 0; background: rgba(2,6,7,.72); backdrop-filter: blur(3px); }
 .drawer-panel {
   position: absolute; top: 0; right: 0; bottom: 0;
-  width: min(560px, 100vw); overflow-y: auto;
+  width: min(560px, 100vw); overflow-y: auto; overflow-x: hidden;
   background: linear-gradient(180deg, #0b1416, #070c0d);
   border-left: 1px solid var(--line-bright);
   box-shadow: -30px 0 80px rgba(0,0,0,.5);
@@ -590,7 +590,7 @@ details p {
   font-size: 18px; line-height: 1;
 }
 .drawer-close:hover { color: var(--text); border-color: var(--green); }
-.drawer-body { padding: 16px 18px 28px; }
+.drawer-body { padding: 16px 18px 28px; overflow-wrap: anywhere; }
 .drawer-body p { margin: 0 0 12px; color: var(--muted); font-size: 12.5px; line-height: 1.75; }
 .drawer-body h3 {
   margin: 18px 0 8px; font-size: 10px; letter-spacing: .16em;
@@ -603,13 +603,14 @@ details p {
 .drawer-stat strong.ok { color: var(--green); }
 .drawer-stat strong.warn { color: var(--amber); }
 .drawer-stat strong.err { color: var(--red); }
-.drawer-pods { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+.drawer-pods { width: 100%; border-collapse: collapse; font-size: 10.5px; table-layout: fixed; }
 .drawer-pods th {
   text-align: left; color: var(--dim); font-weight: 500; font-size: 9px;
   letter-spacing: .08em; text-transform: uppercase; padding: 4px 6px;
   border-bottom: 1px solid var(--line);
 }
-.drawer-pods td { padding: 5px 6px; border-bottom: 1px dashed var(--line); color: var(--muted); }
+.drawer-pods td { padding: 5px 6px; border-bottom: 1px dashed var(--line); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drawer-pods th:nth-child(1), .drawer-pods td:nth-child(1) { width: 34%; }
 .drawer-pods td:first-child { color: var(--text); }
 .drawer-pods .ok { color: var(--green); }
 .drawer-pods .warn { color: var(--amber); }
