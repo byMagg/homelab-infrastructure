@@ -301,7 +301,7 @@ main { position: relative; z-index: 1; }
 .topo-node.tone-err .status-dot { fill: var(--red); }
 .topo-node.tone-idle rect { stroke: #2a3c3e; opacity: .65; }
 .topo-node.tone-idle .status-dot { fill: var(--dim); }
-.topo-node.clickable { cursor: pointer; }
+.topo-node.clickable, .topo-cluster.clickable, .topo-node[data-node] { cursor: pointer; }
 .topo-node.clickable:hover rect, .topo-node.clickable:focus-visible rect {
   stroke: var(--cyan); fill: #0e1d20;
 }
