@@ -19,7 +19,7 @@ spec:
         # Fuerza un rollout cuando cambia config.yaml (los subPath no se
         # refrescan en caliente). Actualiza el hash junto con el ConfigMap:
         #   sha256sum kubernetes/apps/homepage/config.yaml
-        homelab.io/config-hash: "9a043118d05a0a4e52f4086bf7b2e0c5e5d2a55e4cef438057417609e5007665"
+        homelab.io/config-hash: "70d8ea059de53daf23f307a411cb70d27d06d2d5c89234bf7c71cf6109d45903"
     spec:
       serviceAccountName: homepage
       securityContext:

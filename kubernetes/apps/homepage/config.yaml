@@ -18,7 +18,7 @@ data:
         columns: 3
       Observabilidad:
         style: row
-        columns: 2
+        columns: 3
       Red:
         style: row
         columns: 1
@@ -64,6 +64,11 @@ data:
             href: https://dbarroso.dev
             description: CV en Astro servido desde el cluster
             siteMonitor: http://portfolio.portfolio.svc.cluster.local
+        - Observatorio:
+            icon: si-kubernetes
+            href: https://dbarroso.dev/live
+            description: Vista pública en vivo de todas las capas
+            siteMonitor: http://observatory.observatory.svc.cluster.local/healthz
 
     - Observabilidad:
         - Grafana:
@@ -73,9 +78,14 @@ data:
             siteMonitor: http://grafana.observability.svc.cluster.local:3000/api/health
         - Prometheus:
             icon: prometheus.png
-            href: https://prometheus.dbarroso.dev
-            description: Métricas y consultas PromQL
+            href: http://prometheus.homelab.home.arpa
+            description: Métricas y consultas PromQL (solo LAN)
             siteMonitor: http://prometheus.observability.svc.cluster.local:9090/-/healthy
+        - Alertmanager:
+            icon: prometheus.png
+            href: http://alertmanager.homelab.home.arpa
+            description: Alertas agrupadas (solo LAN)
+            siteMonitor: http://alertmanager.observability.svc.cluster.local:9093/-/ready
 
     - Red:
         - AdGuard Home:
