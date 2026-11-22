@@ -95,7 +95,7 @@ const I18N = {
     'topo.note': 'live data · refreshed every 15 s',
     'layer.edge.title': 'Edge',
     'layer.edge.tunnel': 'tunnel',
-    'layer.edge.probe': 'latency',
+    'layer.edge.probe': 'probe',
     'layer.edge.tls': 'TLS',
     'layer.edge.host': 'host',
     'explain.edge': 'Cloudflare terminates TLS and filters traffic. The cluster opens no ports: an outbound tunnel publishes the services.',
