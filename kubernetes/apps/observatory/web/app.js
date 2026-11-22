@@ -643,6 +643,7 @@ const state = {
   dash: { tab: 'cluster', range: '1h', cache: {}, loading: false, visible: false },
   drawer: null,
   hiddenSeries: new Set(),
+  hashScrolled: false,
 };
 
 const params = new URLSearchParams(location.search);
@@ -1653,6 +1654,17 @@ async function refresh() {
     renderStatus();
     renderWorkloadGrid();
     if (state.drawer) renderDrawer();
+    // El contenido crece al llegar los datos: si se entró con #seccion, el
+    // navegador puede haber saltado antes de que existiera la altura final.
+    if (!state.hashScrolled && location.hash) {
+      try {
+        const target = document.querySelector(location.hash);
+        if (target) target.scrollIntoView({ behavior: 'auto', block: 'start' });
+        state.hashScrolled = true;
+      } catch {
+        state.hashScrolled = true;
+      }
+    }
   } catch {
     state.offline = true;
     showDegraded(true, 'offline');
