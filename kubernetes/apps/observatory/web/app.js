@@ -1527,11 +1527,11 @@ function renderDrawer() {
       <h3>${esc(t('drawer.pods'))} (${pods.length}/${(workload.pods || []).length})</h3>
       ${pods.length === 0 ? `<p>${esc(t('drawer.noPods'))}</p>` : `
         <table class="drawer-pods">
-          <thead><tr><th>${esc(t('drawer.pod'))}</th><th>${esc(t('drawer.node'))}</th><th>${esc(t('drawer.status'))}</th><th>${esc(t('drawer.restarts'))}</th><th>CPU</th><th>MEM</th></tr></thead>
+          <thead><tr><th>${esc(t('drawer.pod'))}</th><th>${esc(t('drawer.node'))}</th><th>${esc(t('drawer.ready'))}</th><th>${esc(t('drawer.restarts'))}</th><th>CPU</th><th>MEM</th></tr></thead>
           <tbody>${pods.map((pod) => `<tr>
             <td>${esc(pod.name)}</td>
             <td>${esc(pod.node)}</td>
-            <td class="${pod.phase === 'Running' ? 'ok' : 'warn'}">${esc(pod.phase)} ${pod.ready}/${pod.containers}</td>
+            <td class="${pod.phase === 'Running' ? 'ok' : 'warn'}" title="${esc(pod.phase)}">${pod.ready}/${pod.containers}</td>
             <td>${pod.restarts}</td>
             <td>${fmtCores(pod.cpu)}</td>
             <td>${fmtBytes(pod.mem)}</td>
