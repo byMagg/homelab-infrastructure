@@ -49,7 +49,7 @@ Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
 | Secretos | Sealed Secrets `v0.41.2` (SOPS+age como alternativa) | Cifrados en Git; sin secretos en claro |
 | Storage | local-path (default de k3s) | Sin SSD; evita el peso de Longhorn |
 | Observabilidad | Prometheus + Grafana propios | Sin Helm; manifiestos en `kubernetes/apps/observability` |
-| Backup | Pendiente (snapshots de k3s a Cloudflare R2) | RPO 6 h; bajo coste |
+| Backup | SQLite (`state.db`) local + R2 con rclone | RPO 24 h; sin etcd, `etcd-snapshot` no aplica |
 | Aprovisionamiento | Ansible (Terraform descartado por ahora) | No hay API de hardware; ver ADR-001 |
 | HA control-plane | No (fase futura con kube-vip) | El nodo de 2 GB no debe ser CP |
 
@@ -94,7 +94,9 @@ Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
       2026-11-21)*
 - [ ] **Fase 6b — Hardening del build**: multi-arch, Trivy, SBOM y Cosign.
       *(el tag lo actualiza Argo CD Image Updater en el cluster)*
-- [ ] **Fase 7 — Backup y DR**: snapshots a R2, restauración probada.
+- [x] **Fase 7 — Backup y DR**: copias consistentes de SQLite + token, retención
+      local y réplica a R2, restauración probada. *(completada 2026-11-22;
+      los PVC de las apps quedan para la fase 7b)*
 - [ ] **Fase 8 — Hardening y upgrades**: kube-bench, Kyverno, drill de upgrade.
 - [ ] **Fase 9 — Extras**: Tailscale, SLOs, documentación y posts.
 
@@ -112,9 +114,10 @@ docs/          Arquitectura, ADRs, runbooks, postmortems
 |---|---|
 | [`docs/ansible-guia.md`](docs/ansible-guia.md) | Empezar con Ansible: modelo mental, mapa del repo y comandos seguros |
 | [`docs/despliegue.md`](docs/despliegue.md) | Cómo se automatiza el despliegue (Ansible + Argo CD) y qué queda manual |
+| [`docs/fase-7.md`](docs/fase-7.md) | Backup y recuperación: SQLite, R2, restauración y drill |
 | [`docs/adr-001-ansible-en-lugar-de-terraform.md`](docs/adr-001-ansible-en-lugar-de-terraform.md) | Por qué Ansible y no Terraform |
 
-Las fases están documentadas en `docs/fase-0.md` … `docs/fase-6.md`.
+Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
 
 ## Estado actual
 
@@ -165,8 +168,16 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-6.md`.
 - Reconstrucción 2026-11-17: cluster0 y cluster2 reflasheados, Fase 0/1
   reaplicadas, cluster1 reincorporado con el token nuevo y Argo CD + apps
   resincronizadas.
+- Fase 7 completada: `cluster0` usa **SQLite/kine**, así que no hay
+  `etcd-snapshot`. Un timer systemd crea cada día una copia consistente de
+  `state.db` + token + `tls/cred/manifests` en `/var/backups/k3s` (4 copias) y
+  la replica a R2 (`homelab/k3s`, 14 días) con rclone; las credenciales viven
+  en el SealedSecret `kube-system/r2-backup`. Restauración probada el 2026-11-22
+  (18 s de caída, marcador posterior eliminado) con
+  `k3s-datastore-restore`. Ver `docs/fase-7.md`.
 - Siguiente: alertas a ntfy (fase 5), hardening del build del portfolio
-  (fase 6b), backup a R2 (fase 7) y el TLS interno con CA propia (fase 4).
+  (fase 6b), PVCs de las apps (fase 7b) y el TLS interno con CA propia
+  (fase 4).
 
 ## Ejecución
 
@@ -185,6 +196,9 @@ ansible-playbook ansible/playbooks/phase0.yml --tags pi
 
 # Fase 1
 ansible-playbook ansible/playbooks/phase1.yml
+
+# Fase 7 — backups del datastore SQLite
+ansible-playbook ansible/playbooks/phase7.yml
 
 # Verificación
 ansible-playbook ansible/playbooks/verify.yml

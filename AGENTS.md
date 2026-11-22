@@ -16,6 +16,7 @@ ansible-playbook ansible/playbooks/phase0.yml --tags base,sd,sysctl,unattended
 ansible-playbook ansible/playbooks/phase0.yml --tags ssh,firewall,fail2ban
 ansible-playbook ansible/playbooks/phase0.yml --tags pi
 ansible-playbook ansible/playbooks/phase1.yml
+ansible-playbook ansible/playbooks/phase7.yml
 ansible-playbook ansible/playbooks/verify.yml
 ```
 
@@ -131,6 +132,14 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   del repo y el siguiente ciclo (~2 min) lo corrige. Estrategia `newest-build`
   porque los tags son `sha-<commit>` y no se ordenan por nombre; con
   `platforms: [linux/arm64]` para elegir el manifiesto correcto.
+- Backup (Fase 7): `cluster0` es **SQLite/kine**, no etcd, así que
+  `k3s etcd-snapshot` falla con `etcd datastore disabled` y `--etcd-s3` no
+  aplica. El rol `backup` usa la API `.backup` de SQLite vía `python3` (nunca
+  `cp` con k3s arrancado, el WAL corrompe la copia) y sube `state.db` + token +
+  `/etc/rancher/k3s` a R2 con rclone si existe el Secret `kube-system/r2-backup`.
+  El timer es `k3s-backup.timer` (diario a las 03:15). El token va en el
+  archivo: sin él el snapshot no se puede descifrar. `rclone` 1.60.1 de Trixie
+  necesita `--s3-no-head` con R2.
 
 ## Estado y convenciones
 
@@ -163,6 +172,11 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   tiene regla pública en el `Ingress` ni public hostname, y su UI no tiene
   autenticación.
   Sin cert-manager: el TLS público lo termina Cloudflare. Ver `docs/fase-6.md`.
+- Fase 7 completada: backup SQLite diario en `/var/backups/k3s` (4 copias) y
+  réplica en R2 (`homelab/k3s`, 14 días) con credenciales en el SealedSecret
+  `kube-system/r2-backup`. Restauración probada el 2026-11-22 (18 s de caída)
+  con `k3s-datastore-restore` y modo `--new-host`. Los PVC de AdGuard no entran
+  en `state.db` (fase 7b). Ver `docs/fase-7.md`.
 - Automatización: la Application raíz `homelab-root` (app-of-apps) gestiona
   `kubernetes/argocd/`, así que añadir una app es solo commitear su
   `*-app.yaml`. `.github/workflows/ansible.yml` linta Ansible. El tag del
