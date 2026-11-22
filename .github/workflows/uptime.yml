@@ -1,0 +1,133 @@
+name: uptime
+
+# Monitor externo: corre en GitHub, fuera del cluster. Si el homelab entero
+# cae, este workflow sigue vivo y avisa. Ver docs/monitor-externo.md.
+on:
+  schedule:
+    # Cada 30 min, evitando el minuto 0 (GitHub recomienda no saturarlo).
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+    inputs:
+      simulate_failure:
+        description: "Forzar un incidente para probar el aviso y la recuperación"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      SIMULATE: ${{ github.event.inputs.simulate_failure || 'false' }}
+    steps:
+      - name: Comprobar endpoints públicos y certificado
+        id: check
+        shell: bash
+        run: |
+          set -uo pipefail
+          urls=(
+            "https://dbarroso.dev/"
+            "https://dbarroso.dev/live/healthz"
+            "https://dbarroso.dev/live/"
+            "https://lab.dbarroso.dev/"
+          )
+          failed=()
+          details=""
+          for url in "${urls[@]}"; do
+            code=""
+            for attempt in 1 2 3; do
+              code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 15 -L "$url" 2>/dev/null || true)
+              [ "$code" = "200" ] && break
+              sleep 5
+            done
+            if [ "$code" != "200" ]; then
+              failed+=("$url")
+              details+="- \`$url\` → HTTP ${code:-000}"$'\n'
+            fi
+          done
+
+          # Cloudflare renueva el certificado solo, pero si algo se rompe
+          # queremos enterarnos antes de que caduque.
+          if ! timeout 20 openssl s_client -servername dbarroso.dev -connect dbarroso.dev:443 </dev/null 2>/dev/null \
+              | openssl x509 -noout -checkend 1209600 >/dev/null 2>&1; then
+            failed+=("certificado")
+            details+="- El certificado de dbarroso.dev caduca en menos de 14 días"$'\n'
+          fi
+
+          if [ "$SIMULATE" = "true" ]; then
+            failed+=("simulación")
+            details+="- Simulación manual desde workflow_dispatch"$'\n'
+          fi
+
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "down=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "details<<EOF"
+              printf '%s' "$details"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "down=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Abrir incidente y avisar por ntfy
+        if: steps.check.outputs.down == 'true'
+        env:
+          DETAILS: ${{ steps.check.outputs.details }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          gh label create incident -R "$GITHUB_REPOSITORY" --color B60205 \
+            --description "Monitor externo: homelab inaccesible" --force || true
+          existing=$(gh issue list -R "$GITHUB_REPOSITORY" --label incident \
+            --state open --limit 1 --json number --jq '.[0].number // empty' || true)
+          if [ -z "$existing" ]; then
+            body=$(printf 'El monitor externo no alcanza todos los endpoints públicos.\n\n%s\n- Workflow: %s/%s/actions/runs/%s\n- Detectado: %s\n' \
+              "$DETAILS" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$(date -u +'%Y-%m-%dT%H:%M:%SZ')")
+            gh issue create -R "$GITHUB_REPOSITORY" --title "🚨 Homelab inaccesible" \
+              --body "$body" --label incident || true
+            if [ -n "${NTFY_TOPIC:-}" ]; then
+              curl -fsS -o /dev/null -X POST \
+                -H "Title: 🚨 Homelab inaccesible" -H "Priority: 5" -H "Tags: rotating_light" \
+                --data-binary "El monitor externo no alcanza dbarroso.dev. Revisa el incidente en GitHub." \
+                "https://ntfy.sh/$NTFY_TOPIC" || echo "aviso ntfy falló"
+            else
+              echo "NTFY_TOPIC no configurado: solo se abre el incidente"
+            fi
+          else
+            echo "Ya hay un incidente abierto (#$existing); no se duplica"
+          fi
+
+      - name: Cerrar incidente y avisar de la recuperación
+        if: steps.check.outputs.down != 'true'
+        shell: bash
+        run: |
+          set -uo pipefail
+          existing=$(gh issue list -R "$GITHUB_REPOSITORY" --label incident \
+            --state open --limit 1 --json number --jq '.[0].number // empty' || true)
+          if [ -n "$existing" ]; then
+            gh issue close "$existing" -R "$GITHUB_REPOSITORY" \
+              --comment "✅ Recuperado: todos los endpoints públicos responden. $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || true
+            if [ -n "${NTFY_TOPIC:-}" ]; then
+              curl -fsS -o /dev/null -X POST \
+                -H "Title: ✅ Homelab recuperado" -H "Priority: 3" -H "Tags: white_check_mark" \
+                --data-binary "dbarroso.dev vuelve a responder." \
+                "https://ntfy.sh/$NTFY_TOPIC" || echo "aviso ntfy falló"
+            fi
+          fi
+
+      # Un run en rojo es el estado del monitor y también dispara los avisos
+      # nativos de GitHub si los tienes activados.
+      - name: Marcar el run como fallido
+        if: always() && steps.check.outputs.down == 'true'
+        run: exit 1

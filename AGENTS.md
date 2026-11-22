@@ -218,6 +218,11 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `kubernetes/argocd/`, así que añadir una app es solo commitear su
   `*-app.yaml`. `.github/workflows/ansible.yml` linta Ansible. El tag del
   portfolio lo actualiza `argocd-image-updater` en el cluster.
+- Monitor externo: `.github/workflows/uptime.yml` (cada 30 min, fuera del
+  cluster) comprueba `dbarroso.dev`, `/live/healthz`, `/live`, `lab` y el
+  certificado; abre/cierra un issue `incident` y avisa por ntfy si existe el
+  secreto `NTFY_TOPIC`. Con 30 min se gastan ~1.440 min/mes de Actions (repo
+  privado). UptimeRobot a 5 min es la alternativa. Ver `docs/monitor-externo.md`.
 - Portfolio: `kubernetes/apps/portfolio` (namespace `portfolio`, 3 réplicas de
   `nginx-unprivileged`). La imagen la construye el repo del sitio
   (`dbarrosourr/dbarrosourr.github.io`) en GitHub Actions y se publica en
