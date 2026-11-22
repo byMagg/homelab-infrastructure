@@ -1,0 +1,13 @@
+---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: ntfy-topic
+  namespace: observability
+spec:
+  encryptedData:
+    topic.tmpl: AgAXj+259mk1x7PhQZ7rPUxGQBhegII/2ry/4KC6DnTQ5dErsN9FOgx+LdxcKbU9TVJ7/FbChqIgrXHhfymXIsx4VJ2KufAWcT9dsh46yUvEgsBt9LQIm2mFtzKvXfcespB6Uc4bQa9wcJamMVCYfvg9gLnrt0K871k4OQ6XSjim6yc2YAzQ4sHOBxB81uQroK5Zb8//BKCpcSvoEpiVHAcWMsJ1zob3ZxbL/408K5dwCzF+ltkbzZZtrZaoKlY6XfVeq3e2OuDjqArsT79bEs4hB9mwy+4PTzdjfv/e1UOc/FS4BZirOHU/JM0352yeAiGQ2slHeyrvolM8Zo4mpvLMerSeZlju2BJSq1nntBInClaH0ii92WlgIANMVPidm5RPPqQ6XNkNWGwEdEhnTD/ZvUqFWyAFpNtFCeU+C4ttnWkw0B3Hapw4f/sf9feoelCVp7j3cxXSRBOxMosV4lX4u3ed9tLPUv1MJEYRkJv+9w7sydmwNZZVw+3BlETIF7M6FW9MRaSZoSEtcv8GgK9O/k3Lo6o7M6FeIjI5aJkGtgzJDj0qjAhLhV9jCu8WZBl0VRde8NplZx27OeiiWjzsgtmGHxZ62dD8zldkz98AbV4KJxRjHo7icPqxuy3/5Eh4fJiQMbnazk5mvvP+DttJcMn1GMokmOpqMg4i1o1bAnI8OTNjzSeSpjBZEM19U7r8JtXL8uV73v81i8v+Ce7ylqc4ec61hsvDMm9YzRw4ij9JiVlQZNtM0Th22iQd93DqxmzAMlbZe7PVNA4ydD8C57aqfNDCe6oJM5k=
+  template:
+    metadata:
+      name: ntfy-topic
+      namespace: observability

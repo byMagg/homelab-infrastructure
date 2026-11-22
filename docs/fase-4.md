@@ -152,9 +152,11 @@ pero en un cluster nuevo habría que crearlo a mano igualmente.
 
 1. **TLS interno** con CA propia (cert-manager o `mkcert`/step-ca). Pendiente
    hasta que haya SSO o se quieran quitar los avisos del navegador.
-2. **Admin de Grafana**: hoy `admin`/`admin`. Pasarlo a `existingSecret` con un
-   `SealedSecret` exige cuidado porque el PVC ya tiene la contraseña antigua.
-3. **ntfy** (fase 5) y **R2** (fase 7): usar `SealedSecret` desde el principio.
+2. **Admin de Grafana**: la contraseña se cambió a mano, pero vive solo en el
+   PVC. Pasarla a un `SealedSecret` con `existingSecret` exige cuidado porque el
+   PVC ya tiene la contraseña actual.
+3. **R2** (fase 7) y **ntfy** (fase 5): ya usan `SealedSecret` desde el
+   principio.
 4. **AdGuard**: su configuración vive en un PVC, no es un `Secret` de
    Kubernetes; no entra en este flujo.
 

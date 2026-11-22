@@ -173,12 +173,16 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 - Fase 5 parcial: Prometheus + Grafana + `node-exporter` +
   `kube-state-metrics` + Alertmanager en `kubernetes/apps/observability`
   (namespace `observability`); dashboards `Homelab - Cluster` y
-  `Homelab - Workloads` en `grafana.homelab.home.arpa` (admin por defecto
-  `admin`/`admin`, acceso anónimo de solo lectura). Alertmanager
-  (`alertmanager.homelab.home.arpa`) evalúa 7 reglas pero usa un receiver
-  `null`: faltan las notificaciones. Cada dashboard es **una clave** del
-  ConfigMap `grafana-dashboard-homelab`: el proveedor `file` lee el directorio
-  montado y no hace falta reiniciar Grafana. Ver `docs/fase-5.md`.
+  `Homelab - Workloads` en `grafana.homelab.home.arpa` (contraseña de admin
+  cambiada a mano y no versionada; acceso anónimo de solo lectura). Cada
+  dashboard es **una clave** del ConfigMap `grafana-dashboard-homelab`: el
+  proveedor `file` lee el directorio montado y no hace falta reiniciar Grafana.
+  Alertmanager (`alertmanager.homelab.home.arpa`) evalúa 7 reglas y notifica a
+  **ntfy.sh** con el receiver `ntfy`: el topic es un `SealedSecret`
+  (`ntfy-topic`) montado como plantilla, porque no puede ir en Git. Publica
+  contra la raíz con un `payload` JSON propio (en `/<topic>`, ntfy trata el
+  cuerpo como texto plano). No recarga solo: tras tocar la config,
+  `rollout restart` o `kill -HUP 1`. Ver `docs/fase-5.md`.
 - Panel de inicio: Homepage `v2.8.0` en `kubernetes/apps/homepage` (namespace
   `homepage`), en `homepage.homelab.home.arpa`; enlaza Argo CD, Grafana,
   Prometheus, AdGuard y el portfolio.

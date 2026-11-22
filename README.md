@@ -88,9 +88,9 @@ Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
       *(completada 2026-11-21)*
 - [ ] **Fase 4 — Secretos y TLS**: Sealed Secrets completado; pendiente el TLS
       interno con CA propia. *(secretos 2026-11-21)*
-- [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana, Alertmanager y reglas
-      de alerta; pendientes las notificaciones. *(alertas montadas con receiver
-      `null` el 2026-11-22)*
+- [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana, Alertmanager, reglas
+      de alerta y notificaciones por ntfy. *(ntfy el 2026-11-22; quedan el
+      dashboard por pod y las métricas del plano de control)*
 - [x] **Fase 6 — Dominio público y portfolio**: Cloudflare Tunnel,
       `dbarroso.dev` y el CV publicado. *(túnel y 4 hostnames activos
       2026-11-21)*

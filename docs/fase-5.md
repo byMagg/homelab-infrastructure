@@ -8,7 +8,7 @@ Stack ligero para ver el estado del cluster y de los tres Pis sin el peso de
 | `node-exporter` | `v1.10.0` | Métricas del host (temperatura, CPU, RAM, disco, red) |
 | `kube-state-metrics` | `v2.15.0` | Estado de nodos, pods, deployments, reinicios |
 | `Prometheus` | `v3.5.0` | Scrape cada 30 s, retención 7 d / 3 GB |
-| `Alertmanager` | `v0.35.0` | Agrupa las alertas; receiver `null` (sin envío todavía) |
+| `Alertmanager` | `v0.35.0` | Agrupa las alertas y las envía a ntfy.sh |
 | `Grafana` | `13.1.0` | Dashboard `Homelab - Cluster` |
 
 Namespace `observability`, gestionado por Argo CD con
@@ -22,8 +22,10 @@ Namespace `observability`, gestionado por Argo CD con
 - Alertmanager: <http://alertmanager.homelab.home.arpa> (alertas agrupadas;
   también solo LAN y sin autenticación).
 - Anónimo: rol **Viewer** (solo lectura).
-- Admin: `admin` / `admin`; Grafana obliga a cambiarla al primer acceso. No hay
-  Secret en Git a propósito.
+- Admin: contraseña cambiada a mano tras el primer acceso; no está en Git. Vive
+  solo en el PVC de Grafana, que no entra en el backup: en un cluster nuevo
+  vuelve a `admin`/`admin` y la obliga a cambiar. Pasarla a un `SealedSecret`
+  con `existingSecret` sigue pendiente (ver `docs/fase-4.md`).
 
 ## Cómo se recogen las métricas
 
@@ -90,11 +92,61 @@ cada 30 s y las envía a Alertmanager (`v0.35.0`), que las agrupa por
 | `K3sBackupMissing` | no existe la métrica de backup | 15 min |
 | `AlertmanagerDown` | Prometheus no scrapea Alertmanager | 5 min |
 
-El receiver es **`null`**: las alertas se ven en Prometheus (`/alerts`) y en la
-UI de Alertmanager, pero no se envía ningún email/push. Para activar las
-notificaciones más adelante basta con añadir un receiver `email` (o `webhook`
-para ntfy/Telegram) en `alertmanager-config` y cambiar `route.receiver`. Las
-credenciales SMTP irían en un `SealedSecret`, igual que `kube-system/r2-backup`.
+### Notificaciones (ntfy)
+
+El receiver `ntfy` envía cada grupo de alertas a <https://ntfy.sh>; ya no hay
+receiver `null`.
+
+El **topic** es la credencial del canal: vive en el `SealedSecret`
+`observability/ntfy-topic` (clave `topic.tmpl`), se monta en
+`/etc/alertmanager-templates` y la config lo usa como plantilla
+(`{{ template "ntfy_topic" . }}`). Así el topic no queda en Git. Para
+suscribirse hace falta leerlo:
+
+```bash
+kubectl -n observability get secret ntfy-topic \
+  -o jsonpath='{.data.topic\.tmpl}' | base64 -d
+```
+
+En la app de ntfy (Android/iOS/escritorio) se añade ese topic como suscripción.
+
+El webhook publica contra la raíz (`https://ntfy.sh`) con un `payload` JSON
+propio. No se publica en `https://ntfy.sh/<topic>` porque ntfy interpretaría el
+cuerpo como texto plano y la notificación llegaría como JSON crudo.
+
+- Título: `🔥 <alertname>` al dispararse y `✅ <alertname> (resuelta)` al
+  resolverse (`send_resolved: true`).
+- Cuerpo: `summary` y `description` de cada alerta.
+- Al pulsar la notificación se abre la UI de Alertmanager (solo LAN).
+- Agrupado por `alertname` y `node`; `group_wait` 30 s, repetición cada 4 h.
+
+Prueba de punta a punta (la imagen de Alertmanager incluye `amtool`):
+
+```bash
+kubectl -n observability exec deploy/alertmanager -- \
+  amtool alert add PruebaNtfy node=cluster0 \
+    --annotation=summary='Prueba de ntfy' \
+    --alertmanager.url=http://localhost:9093
+```
+
+La notificación llega tras el `group_wait` (30 s).
+
+Límites y avisos:
+
+- ntfy.sh gratuito: ~250 mensajes/día, caché de 12 h y sin autenticación; el
+  topic es lo único que protege el canal. No pongas credenciales ni datos
+  sensibles en las anotaciones de las reglas.
+- Si el cluster entero cae, Alertmanager cae con él y **no hay notificación por
+  este canal**; eso solo lo cubre un monitor externo (ver
+  `docs/observatorio.md`).
+- Rotar el topic: regenerar `topic.tmpl`, sellarlo otra vez con `kubeseal`,
+  commit y recargar Alertmanager (las plantillas se leen al arrancar):
+
+  ```bash
+  kubectl -n observability rollout restart deploy/alertmanager
+  # o, sin perder los silencios del emptyDir:
+  kubectl -n observability exec deploy/alertmanager -- kill -HUP 1
+  ```
 
 `k3s_backup_last_success_timestamp_seconds` lo escribe el script de backup en
 `/var/lib/node-exporter/textfile/k3s_backup.prom`; `node-exporter` lo expone con
@@ -152,6 +204,8 @@ curl -s 'localhost:9090/api/v1/query?query=node_thermal_zone_temp' | jq .
 curl -s localhost:9090/api/v1/rules | jq -r '.data.groups[].rules[].name'
 curl -I http://grafana.homelab.home.arpa
 curl -I http://alertmanager.homelab.home.arpa
+kubectl -n observability get sealedsecret ntfy-topic
+kubectl -n observability exec deploy/alertmanager -- ls /etc/alertmanager-templates
 ```
 
 Todos los targets (`prometheus`, `alertmanager`, `node-exporter` ×3,
@@ -162,8 +216,6 @@ quedan en los nodos de 4 GB.
 
 ## Pendiente
 
-1. **Notificaciones** de las alertas (email, ntfy o Telegram). Las reglas y
-   Alertmanager ya están montados con receiver `null`; falta el canal.
-2. Dashboard por pod (CPU/memoria de contenedores) usando cadvisor.
-3. Métricas del servidor de k3s (apiserver, etcd/SQLite) y de AdGuard.
-4. Valorar VictoriaMetrics o retención mayor si el volumen de series crece.
+ 1. Dashboard por pod (CPU/memoria de contenedores) usando cadvisor.
+ 2. Métricas del servidor de k3s (apiserver, etcd/SQLite) y de AdGuard.
+ 3. Valorar VictoriaMetrics o retención mayor si el volumen de series crece.

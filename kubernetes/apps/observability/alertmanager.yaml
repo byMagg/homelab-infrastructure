@@ -8,19 +8,32 @@ data:
     global:
       resolve_timeout: 5m
 
+    templates:
+      # El topic de ntfy NO está en Git: vive en el SealedSecret `ntfy-topic`,
+      # que define la plantilla `ntfy_topic`. Ver docs/fase-5.md.
+      - /etc/alertmanager-templates/*.tmpl
+
     route:
-      # Fase 5: cuando haya canal de notificación, cambiar el receiver y
-      # añadir su configuración en `receivers`. Ver docs/fase-5.md.
-      receiver: "null"
+      receiver: ntfy
       group_by: ["alertname", "node"]
       group_wait: 30s
       group_interval: 5m
       repeat_interval: 4h
 
     receivers:
-      # Receiver sin salida: las alertas se ven en la UI de Alertmanager y en
-      # Prometheus, pero no se envía nada.
-      - name: "null"
+      # ntfy.sh: se publica contra la raíz con un payload JSON propio, porque
+      # si se publica en https://ntfy.sh/<topic> ntfy interpreta el cuerpo como
+      # texto plano y el mensaje sale como JSON crudo.
+      - name: ntfy
+        webhook_configs:
+          - url: https://ntfy.sh
+            send_resolved: true
+            max_alerts: 10
+            payload:
+              topic: '{{ template "ntfy_topic" . }}'
+              title: '{{ if eq .Status "firing" }}🔥{{ else }}✅{{ end }} {{ .CommonLabels.alertname }}{{ if ne .Status "firing" }} (resuelta){{ end }}'
+              message: '{{ range .Alerts }}{{ .Annotations.summary }}{{ with .Annotations.description }} — {{ . }}{{ end }}{{ "\n" }}{{ end }}'
+              click: 'http://alertmanager.homelab.home.arpa'
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -83,6 +96,9 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/alertmanager
+            - name: ntfy-templates
+              mountPath: /etc/alertmanager-templates
+              readOnly: true
             - name: data
               mountPath: /alertmanager
             - name: tmp
@@ -91,6 +107,9 @@ spec:
         - name: config
           configMap:
             name: alertmanager-config
+        - name: ntfy-templates
+          secret:
+            secretName: ntfy-topic
         - name: data
           emptyDir: {}
         - name: tmp

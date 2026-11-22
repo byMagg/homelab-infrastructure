@@ -154,4 +154,3 @@ chrome --headless=new --screenshot=/tmp/live.png \
   cae, algo que el propio observatorio no puede hacer.
 - Enlazar el observatorio desde el portfolio (hecho en el repo del CV) y desde
   Homepage.
-- Notificaciones de Alertmanager (fase 5).
