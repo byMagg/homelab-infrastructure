@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: observatory
+  namespace: observatory
+spec:
+  ingressClassName: traefik
+  rules:
+    # Se sirve bajo el mismo host público del portfolio: PathPrefix /live
+    # gana a la regla "/" del Ingress de portfolio.
+    - host: dbarroso.dev
+      http:
+        paths:
+          - path: /live
+            pathType: Prefix
+            backend:
+              service:
+                name: observatory
+                port:
+                  name: http
+    - host: observatory.homelab.home.arpa
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: observatory
+                port:
+                  name: http

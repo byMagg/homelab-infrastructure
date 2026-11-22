@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Homelab en vivo · Daniel Barroso</title>
+  <meta name="description" content="Observatorio en vivo del homelab de Daniel Barroso: edge, cluster Kubernetes, GitOps, workloads, backups y observabilidad.">
+  <meta name="theme-color" content="#070b0c">
+  <meta property="og:title" content="Homelab en vivo · Daniel Barroso">
+  <meta property="og:description" content="Edge, Kubernetes, GitOps, backups y observabilidad en tiempo real.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://dbarroso.dev/live">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23070b0c'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%2300ffa3'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/live/styles.css">
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-glow" aria-hidden="true"></div>
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <a class="brand" href="https://dbarroso.dev" aria-label="Volver al CV">
+      <span class="brand-mark">◢</span>
+      <span class="brand-text">dbarroso<span class="dim">@</span>homelab</span>
+      <span class="dim brand-colon">:~$</span>
+      <span class="brand-cmd">./observatory --live</span>
+    </a>
+    <div class="live-state" id="live-state">
+      <span class="live-dot" id="live-dot"></span>
+      <span id="live-label">LIVE</span>
+      <span class="dim" id="last-update">--</span>
+    </div>
+    <div class="top-actions">
+      <button id="recruiter-btn" class="btn tiny" aria-pressed="false">modo reclutador</button>
+      <div class="lang" role="group" aria-label="Idioma / Language">
+        <button class="lang-btn" data-lang="es">ES</button>
+        <span class="dim">/</span>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="degraded" class="degraded" hidden>
+      <span class="warn-dot"></span>
+      <span data-i18n="degraded.text">Algunas capas no responden; se muestra la última lectura conocida.</span>
+    </div>
+
+    <section class="hero">
+      <div class="hero-main">
+        <p class="eyebrow"><span class="prompt">$</span> <span data-i18n="hero.eyebrow">cat /proc/homelab</span><span class="caret"></span></p>
+        <h1><span data-i18n="hero.title1">Todo el stack,</span><br><span class="accent" data-i18n="hero.title2">en vivo.</span></h1>
+        <p class="lede" data-i18n="hero.lede">Tres Raspberry Pi, Kubernetes, GitOps, backups y observabilidad. Esto no es una captura: es el estado real del homelab mientras lo miras.</p>
+        <div class="hero-actions">
+          <button id="journey-btn" class="btn primary"><span class="play">▶</span> <span data-i18n="hero.journey">simular petición</span></button>
+          <a href="#layers" class="btn ghost" data-i18n="hero.layers">explorar capas ↓</a>
+        </div>
+      </div>
+      <div class="hero-stats" id="hero-stats">
+        <div class="stat">
+          <span class="stat-k" data-i18n="stat.nodes">nodos</span>
+          <strong id="stat-nodes">--</strong>
+          <span class="stat-sub" data-i18n="stat.nodesSub">Ready</span>
+        </div>
+        <div class="stat">
+          <span class="stat-k" data-i18n="stat.apps">apps</span>
+          <strong id="stat-apps">--</strong>
+          <span class="stat-sub" data-i18n="stat.appsSub">Healthy</span>
+        </div>
+        <div class="stat">
+          <span class="stat-k" data-i18n="stat.pods">pods</span>
+          <strong id="stat-pods">--</strong>
+          <span class="stat-sub" data-i18n="stat.podsSub">Running</span>
+        </div>
+        <div class="stat">
+          <span class="stat-k" data-i18n="stat.backup">backup</span>
+          <strong id="stat-backup">--</strong>
+          <span class="stat-sub" id="stat-backup-sub" data-i18n="stat.backupSub">antigüedad</span>
+        </div>
+        <div class="stat">
+          <span class="stat-k" data-i18n="stat.alerts">alertas</span>
+          <strong id="stat-alerts">--</strong>
+          <span class="stat-sub" data-i18n="stat.alertsSub">activas</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel topo-panel" aria-label="Topología del homelab">
+      <div class="panel-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="panel-file">topology.svg</span>
+        <span class="panel-note" id="topo-note" data-i18n="topo.note">datos en vivo · se actualiza cada 15 s</span>
+      </div>
+      <div class="topo-scroll">
+        <svg id="topology" viewBox="0 0 1100 430" role="img" aria-label="Topología: navegador, Cloudflare, Traefik, cluster de tres nodos, R2 y observabilidad">
+          <defs>
+            <linearGradient id="g-accent" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#00ffa3"/>
+              <stop offset="1" stop-color="#22d3ee"/>
+            </linearGradient>
+            <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="4" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#2a4a48"/>
+            </marker>
+          </defs>
+
+          <g class="topo-grid" aria-hidden="true">
+            <path d="M0 60 H1100 M0 130 H1100 M0 200 H1100 M0 270 H1100 M0 340 H1100"/>
+            <path d="M110 0 V430 M220 0 V430 M330 0 V430 M440 0 V430 M550 0 V430 M660 0 V430 M770 0 V430 M880 0 V430 M990 0 V430"/>
+          </g>
+
+          <g class="topo-links" aria-hidden="true">
+            <path id="link-https" class="link" d="M 112 215 C 150 215, 175 215, 210 215" marker-end="url(#arrow)"/>
+            <path id="link-tunnel" class="link" d="M 360 215 C 385 215, 405 215, 430 215" marker-end="url(#arrow)"/>
+            <path id="link-ingress" class="link" d="M 560 215 C 585 215, 605 215, 640 215" marker-end="url(#arrow)"/>
+            <path id="link-backup" class="link link-dash" d="M 870 300 C 900 330, 920 350, 935 368" marker-end="url(#arrow)"/>
+            <path id="link-metrics" class="link link-dash" d="M 700 310 C 685 335, 655 350, 625 365" marker-end="url(#arrow)"/>
+            <text x="155" y="202" class="link-label">HTTPS</text>
+            <text x="374" y="202" class="link-label">QUIC</text>
+            <text x="583" y="202" class="link-label">HTTP</text>
+            <text x="918" y="345" class="link-label">daily</text>
+            <text x="638" y="340" class="link-label">scrape</text>
+          </g>
+
+          <g class="topo-node tone-ok" id="topo-browser" transform="translate(28,180)">
+            <rect width="84" height="70" rx="10"/>
+            <text x="42" y="30" text-anchor="middle" class="node-title">you</text>
+            <text x="42" y="49" text-anchor="middle" class="node-sub">browser</text>
+          </g>
+
+          <g class="topo-node tone-ok" id="topo-edge" transform="translate(210,170)">
+            <rect width="150" height="90" rx="12"/>
+            <text x="75" y="32" text-anchor="middle" class="node-title">Cloudflare</text>
+            <text x="75" y="52" text-anchor="middle" class="node-sub">edge · TLS · WAF</text>
+            <text x="75" y="72" text-anchor="middle" class="node-sub" id="topo-edge-sub">tunnel --</text>
+          </g>
+
+          <g class="topo-node tone-ok" id="topo-traefik" transform="translate(430,175)">
+            <rect width="130" height="80" rx="12"/>
+            <text x="65" y="32" text-anchor="middle" class="node-title">Traefik</text>
+            <text x="65" y="52" text-anchor="middle" class="node-sub">ingress · routes</text>
+            <text x="65" y="70" text-anchor="middle" class="node-sub" id="topo-traefik-sub">/ → portfolio</text>
+          </g>
+
+          <g class="topo-cluster" id="topo-cluster">
+            <rect class="cluster-box" x="640" y="90" width="400" height="220" rx="16"/>
+            <text x="660" y="116" class="cluster-title">k3s cluster</text>
+            <text x="1020" y="116" text-anchor="end" class="cluster-sub" id="topo-cluster-sub">3 nodes</text>
+
+            <g class="topo-node tone-ok" id="topo-node0" transform="translate(660,132)">
+              <rect width="110" height="64" rx="9"/>
+              <text x="55" y="26" text-anchor="middle" class="node-title" id="topo-node0-name">cluster0</text>
+              <text x="55" y="45" text-anchor="middle" class="node-sub">control-plane</text>
+              <circle cx="96" cy="16" r="4" class="status-dot"/>
+            </g>
+            <g class="topo-node tone-ok" id="topo-node1" transform="translate(790,132)">
+              <rect width="110" height="64" rx="9"/>
+              <text x="55" y="26" text-anchor="middle" class="node-title" id="topo-node1-name">cluster1</text>
+              <text x="55" y="45" text-anchor="middle" class="node-sub">worker</text>
+              <circle cx="96" cy="16" r="4" class="status-dot"/>
+            </g>
+            <g class="topo-node tone-ok" id="topo-node2" transform="translate(920,132)">
+              <rect width="110" height="64" rx="9"/>
+              <text x="55" y="26" text-anchor="middle" class="node-title" id="topo-node2-name">cluster2</text>
+              <text x="55" y="45" text-anchor="middle" class="node-sub">worker</text>
+              <circle cx="96" cy="16" r="4" class="status-dot"/>
+            </g>
+
+            <g class="app-row" id="topo-apps" aria-hidden="true"></g>
+            <text x="660" y="272" class="cluster-sub" id="topo-pods-sub">pods --</text>
+            <text x="1020" y="272" text-anchor="end" class="cluster-sub" id="topo-workloads-sub">-- apps</text>
+          </g>
+
+          <g class="topo-node tone-ok" id="topo-r2" transform="translate(870,352)">
+            <rect width="130" height="56" rx="10"/>
+            <text x="65" y="24" text-anchor="middle" class="node-title">R2</text>
+            <text x="65" y="43" text-anchor="middle" class="node-sub" id="topo-r2-sub">backup --</text>
+          </g>
+
+          <g class="topo-node tone-ok" id="topo-obs" transform="translate(430,345)">
+            <rect width="190" height="58" rx="10"/>
+            <text x="95" y="22" text-anchor="middle" class="node-title">Prometheus</text>
+            <text x="95" y="42" text-anchor="middle" class="node-sub" id="topo-obs-sub">Alertmanager · targets --/--</text>
+          </g>
+
+          <circle id="packet" class="packet" r="6" cx="70" cy="215"/>
+          <path id="journey-path" d="M 70 215 L 285 215 L 495 215 L 715 164" fill="none" stroke="none"/>
+        </svg>
+      </div>
+    </section>
+
+    <section id="layers" class="layers">
+      <article class="layer panel" id="layer-edge">
+        <div class="panel-bar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="panel-file">edge.ts</span>
+          <span class="chip" id="edge-chip">--</span>
+        </div>
+        <div class="layer-body">
+          <h2 data-i18n="layer.edge.title">Edge</h2>
+          <div class="metric-grid">
+            <div class="metric"><span class="k" data-i18n="layer.edge.tunnel">túnel</span><strong id="edge-tunnel">--</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.edge.probe">latencia</span><strong id="edge-probe">--</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.edge.tls">TLS</span><strong>Cloudflare</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.edge.host">host</span><strong>dbarroso.dev</strong></div>
+          </div>
+          <p class="explain" data-i18n="explain.edge">Cloudflare termina el TLS y filtra el tráfico. El cluster no abre puertos: un túnel saliente publica los servicios.</p>
+        </div>
+      </article>
+
+      <article class="layer panel" id="layer-data">
+        <div class="panel-bar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="panel-file">backup.sh</span>
+          <span class="chip" id="data-chip">--</span>
+        </div>
+        <div class="layer-body">
+          <h2 data-i18n="layer.data.title">Datos</h2>
+          <div class="backup-hero">
+            <strong id="backup-age">--</strong>
+            <span class="k" data-i18n="layer.data.last">desde el último backup</span>
+          </div>
+          <div class="metric-grid">
+            <div class="metric"><span class="k" data-i18n="layer.data.size">tamaño</span><strong id="backup-size">--</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.data.schedule">horario</span><strong id="backup-schedule">--</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.data.r2">R2</span><strong id="backup-r2">--</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.data.retention">retención</span><strong>14d</strong></div>
+          </div>
+          <p class="explain" data-i18n="explain.data">Copia consistente del datastore SQLite de k3s, el token y las CA. Se guarda en local y se replica a Cloudflare R2 cada día.</p>
+        </div>
+      </article>
+
+      <article class="layer panel wide" id="layer-cluster">
+        <div class="panel-bar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="panel-file">cluster.yaml</span>
+          <span class="panel-note" id="cluster-note">--</span>
+        </div>
+        <div class="layer-body">
+          <h2 data-i18n="layer.cluster.title">Cluster</h2>
+          <div class="node-grid" id="node-grid"></div>
+          <p class="explain" data-i18n="explain.cluster">Tres Raspberry Pi 4 con k3s: un control-plane y dos workers. cluster2 es el nodo ligero de 2 GB y solo recibe cargas pequeñas.</p>
+        </div>
+      </article>
+
+      <article class="layer panel wide" id="layer-gitops">
+        <div class="panel-bar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="panel-file">argo.app</span>
+          <span class="panel-note" id="gitops-note">--</span>
+        </div>
+        <div class="layer-body">
+          <h2 data-i18n="layer.gitops.title">GitOps</h2>
+          <div class="app-grid" id="app-grid"></div>
+          <p class="explain" data-i18n="explain.gitops">Argo CD compara Git con el cluster y corrige cualquier deriva automáticamente. Si el estado no coincide con el repo, vuelve a él sin intervención.</p>
+        </div>
+      </article>
+
+      <article class="layer panel" id="layer-workloads">
+        <div class="panel-bar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="panel-file">workloads.ts</span>
+          <span class="chip" id="workloads-chip">--</span>
+        </div>
+        <div class="layer-body">
+          <h2 data-i18n="layer.workloads.title">Workloads</h2>
+          <ul class="workload-list" id="workload-list"></ul>
+          <p class="explain" data-i18n="explain.workloads">Aplicaciones reales sirviendo tráfico: portfolio, AdGuard, Homepage, Grafana, Prometheus y el propio observatorio.</p>
+        </div>
+      </article>
+
+      <article class="layer panel" id="layer-obs">
+        <div class="panel-bar">
+          <span class="dots"><i></i><i></i><i></i></span>
+          <span class="panel-file">alerts.yml</span>
+          <span class="chip" id="obs-chip">--</span>
+        </div>
+        <div class="layer-body">
+          <h2 data-i18n="layer.obs.title">Observabilidad</h2>
+          <div class="metric-grid">
+            <div class="metric"><span class="k" data-i18n="layer.obs.targets">targets</span><strong id="obs-targets">--</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.obs.alerts">alertas</span><strong id="obs-alerts">--</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.obs.rules">reglas</span><strong>7</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.obs.notify">notificaciones</span><strong data-i18n="layer.obs.pending">pendientes</strong></div>
+          </div>
+          <ul class="alert-list" id="alert-list"></ul>
+          <p class="explain" data-i18n="explain.obs">Prometheus mide cada 30 segundos; Alertmanager agrupa las alertas y las deja listas para conectar a email o mensajería.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel timeline-panel">
+      <div class="panel-bar">
+        <span class="dots"><i></i><i></i><i></i></span>
+        <span class="panel-file">timeline.log</span>
+        <span class="panel-note" data-i18n="timeline.note">últimos eventos del sistema</span>
+      </div>
+      <ol class="timeline" id="timeline"></ol>
+    </section>
+
+    <footer class="footer">
+      <span data-i18n="footer.built">construido con k3s · Argo CD · Prometheus · Cloudflare</span>
+      <span class="dim">·</span>
+      <a href="https://dbarroso.dev">dbarroso.dev</a>
+      <span class="dim">·</span>
+      <span id="footer-rev" class="dim">rev --</span>
+    </footer>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="/live/app.js"></script>
+</body>
+</html>
