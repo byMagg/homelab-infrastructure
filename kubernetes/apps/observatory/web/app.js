@@ -32,6 +32,7 @@ const I18N = {
     'stat.uptime': 'uptime',
     'stat.uptimeSub': 'del nodo más joven',
     'ui.technical': 'Detalle técnico',
+    'ui.simple': 'En simple',
     'topo.note': 'datos en vivo · se actualiza cada 15 s',
     'topo.title': 'Qué pasa cuando abres esta página',
     'topo.intro': 'Tu petición pasa por seis sitios hasta volver convertida en la página que ves. Puedes recorrerla paso a paso o pulsar cualquier pieza del dibujo.',
@@ -91,6 +92,12 @@ const I18N = {
     'workloads.internal': 'internas',
     'workloads.empty': 'No hay ninguna aplicación que coincida con la búsqueda.',
     'workloads.ready': 'listas',
+    'access.title': 'Entrar en las aplicaciones',
+    'access.intro': 'Puedes abrir las aplicaciones públicas tal cual. Las privadas siguen detrás de Cloudflare Access o en la LAN: no se publican credenciales y no se permite escribir en ellas.',
+    'access.public': 'público',
+    'access.access': 'Access',
+    'access.lan': 'solo LAN',
+    'access.readonly': 'solo lectura',
     'workloads.restarts': 'reinicios',
     'dash.title': 'Los dashboards reales',
     'dash.intro': 'Lo mismo que ve el dueño del homelab en Grafana, pero en versión curada y pública. Elige una pestaña y un rango; pasa el ratón por las gráficas.',
@@ -108,6 +115,7 @@ const I18N = {
     'dash.explain.web': 'Cuántas visitas llegan, cuántas fallan y cuánto tardan. Los errores 5xx son fallos del servidor; si suben, algo se rompe. La latencia p95 es el tiempo que tarda el 95 % de las visitas.',
     'dash.explain.api': 'El cluster también se habla a sí mismo: Argo, los controladores y los pods preguntan cosas a la API. Estas gráficas muestran ese trabajo interno, que no se ve desde fuera.',
     'dash.explain.pods': 'Qué aplicaciones gastan más CPU y memoria en este momento. Sirve para detectar quién se está comiendo la Raspberry.',
+    'dash.howto': 'Cómo leerlo',
     'dash.chart.cpu': 'CPU por nodo',
     'dash.chart.memory': 'Memoria por nodo',
     'dash.chart.temperature': 'Temperatura',
@@ -155,6 +163,7 @@ const I18N = {
     'drawer.pods': 'pods',
     'drawer.resources': 'recursos',
     'drawer.links': 'enlaces',
+    'drawer.open': 'Abrir aplicación',
     'drawer.image': 'imagen',
     'drawer.namespace': 'namespace',
     'drawer.kind': 'tipo',
@@ -245,6 +254,7 @@ const I18N = {
     'stat.uptime': 'uptime',
     'stat.uptimeSub': 'youngest node',
     'ui.technical': 'Technical detail',
+    'ui.simple': 'In plain words',
     'topo.note': 'live data · refreshed every 15 s',
     'topo.title': 'What happens when you open this page',
     'topo.intro': 'Your request goes through six places before coming back as the page you are reading. You can follow it step by step or click any piece in the diagram.',
@@ -304,6 +314,12 @@ const I18N = {
     'workloads.internal': 'internal',
     'workloads.empty': 'No application matches the search.',
     'workloads.ready': 'ready',
+    'access.title': 'Open the applications',
+    'access.intro': 'You can open public applications directly. Private ones stay behind Cloudflare Access or on the LAN: no credentials are published and writing is not allowed.',
+    'access.public': 'public',
+    'access.access': 'Access',
+    'access.lan': 'LAN only',
+    'access.readonly': 'read-only',
     'workloads.restarts': 'restarts',
     'dash.title': 'The real dashboards',
     'dash.intro': 'The same data the homelab owner sees in Grafana, in a curated public version. Pick a tab and a range; hover over the charts.',
@@ -321,6 +337,7 @@ const I18N = {
     'dash.explain.web': 'How many visits arrive, how many fail and how long they take. 5xx errors are server failures; if they rise, something is broken. p95 latency is the time 95 % of visits take.',
     'dash.explain.api': 'The cluster also talks to itself: Argo, controllers and pods ask the API questions. These charts show that internal work, which is invisible from outside.',
     'dash.explain.pods': 'Which applications use the most CPU and memory right now. Useful to spot who is eating the Raspberry Pi.',
+    'dash.howto': 'How to read it',
     'dash.chart.cpu': 'CPU per node',
     'dash.chart.memory': 'Memory per node',
     'dash.chart.temperature': 'Temperature',
@@ -368,6 +385,7 @@ const I18N = {
     'drawer.pods': 'pods',
     'drawer.resources': 'resources',
     'drawer.links': 'links',
+    'drawer.open': 'Open application',
     'drawer.image': 'image',
     'drawer.namespace': 'namespace',
     'drawer.kind': 'kind',
@@ -437,18 +455,21 @@ const WORKLOAD_INFO = {
     simple: { es: 'El CV de Daniel, online. Tres copias idénticas responden a la vez para que la web siga en pie aunque una falle.', en: "Daniel's CV, online. Three identical copies answer at once so the site survives if one fails." },
     tech: { es: 'nginx-unprivileged sirviendo un sitio estático, 3 réplicas, Ingress dbarroso.dev; el tag lo actualiza Argo CD Image Updater.', en: 'nginx-unprivileged serving a static site, 3 replicas, dbarroso.dev Ingress; the tag is updated by Argo CD Image Updater.' },
     url: 'https://dbarroso.dev',
+    uiKind: 'public',
     primary: true,
   },
   homepage: {
     simple: { es: 'El panel de inicio del laboratorio: una página con enlaces a todo lo demás.', en: 'The lab start page: one page with links to everything else.' },
     tech: { es: 'Homepage v2.8.0 con rootfs de solo lectura, configuración por ConfigMap y widget de Kubernetes con ServiceAccount de solo lectura.', en: 'Homepage v2.8.0 with a read-only rootfs, ConfigMap config and a Kubernetes widget backed by a read-only ServiceAccount.' },
     url: 'https://lab.dbarroso.dev',
+    uiKind: 'public',
     primary: true,
   },
   adguard: {
     simple: { es: 'El portero de internet de casa: bloquea anuncios y traduce nombres como grafana.homelab.home.arpa a la IP del cluster.', en: 'The home internet gatekeeper: it blocks ads and resolves names like grafana.homelab.home.arpa to the cluster IP.' },
     tech: { es: 'AdGuard Home v0.107.80; DNS en 192.168.1.100:53 vía ServiceLB, UI en el puerto 80 y dos PVC local-path.', en: 'AdGuard Home v0.107.80; DNS on 192.168.1.100:53 via ServiceLB, UI on port 80 and two local-path PVCs.' },
     url: 'http://adguard.homelab.home.arpa',
+    uiKind: 'lan',
     primary: true,
   },
   cloudflared: {
@@ -460,6 +481,7 @@ const WORKLOAD_INFO = {
     simple: { es: 'Esta misma página: un programa pequeño que pregunta al cluster y dibuja lo que ves.', en: 'This very page: a small program that asks the cluster and draws what you see.' },
     tech: { es: 'Node 22 sin dependencias, uid 65534, BFF con consultas cerradas y ServiceAccount de solo lectura.', en: 'Node 22 with no dependencies, uid 65534, BFF with closed queries and a read-only ServiceAccount.' },
     url: 'https://dbarroso.dev/live',
+    uiKind: 'public',
     primary: true,
   },
   grafana: {
@@ -467,18 +489,21 @@ const WORKLOAD_INFO = {
     tech: { es: 'Grafana 13.1.0, PVC local-path, dashboards provisionados desde ConfigMaps y acceso anónimo Viewer.', en: 'Grafana 13.1.0, local-path PVC, dashboards provisioned from ConfigMaps and anonymous Viewer access.' },
     url: 'https://grafana.dbarroso.dev',
     access: true,
+    uiKind: 'access',
     primary: true,
   },
   prometheus: {
     simple: { es: 'La libreta donde se apunta todo cada 30 segundos: CPU, memoria, disco, visitas y errores.', en: 'The notebook where everything is recorded every 30 seconds: CPU, memory, disk, visits and errors.' },
     tech: { es: 'Prometheus v3.5.0, retención 7 días / 3 GB, scrape de kubelet, cAdvisor, node-exporter, Traefik y kube-state-metrics.', en: 'Prometheus v3.5.0, 7 days / 3 GB retention, scraping kubelet, cAdvisor, node-exporter, Traefik and kube-state-metrics.' },
     url: 'http://prometheus.homelab.home.arpa',
+    uiKind: 'lan',
     primary: true,
   },
   alertmanager: {
     simple: { es: 'El que avisa cuando algo va mal. Si una regla se cumple, manda un mensaje al móvil por ntfy.', en: 'The one that warns when something is wrong. When a rule fires, it sends a phone message via ntfy.' },
     tech: { es: 'Alertmanager v0.35.0 con 7 reglas y receiver ntfy; el topic vive en un SealedSecret.', en: 'Alertmanager v0.35.0 with 7 rules and an ntfy receiver; the topic lives in a SealedSecret.' },
     url: 'http://alertmanager.homelab.home.arpa',
+    uiKind: 'lan',
     primary: true,
   },
   traefik: {
@@ -491,6 +516,7 @@ const WORKLOAD_INFO = {
     tech: { es: 'Argo CD v3.6.1; la UI interna vive en argocd.homelab.home.arpa y la pública detrás de Cloudflare Access.', en: 'Argo CD v3.6.1; the internal UI lives at argocd.homelab.home.arpa and the public one behind Cloudflare Access.' },
     url: 'https://argocd.dbarroso.dev',
     access: true,
+    uiKind: 'access',
     primary: true,
   },
   'sealed-secrets': {
@@ -1136,6 +1162,30 @@ function renderWorkloadGrid() {
     .join('');
 }
 
+// ---------------------------------------------------------------- accesos
+const APP_LINK_IDS = ['portfolio', 'homepage', 'observatory', 'grafana', 'argocd-server', 'prometheus', 'alertmanager', 'adguard'];
+
+function renderAppLinks() {
+  const box = $('app-links');
+  if (!box) return;
+  if (!state.data) {
+    box.innerHTML = `<p class="alert-ok">${esc(t('dash.loading'))}</p>`;
+    return;
+  }
+  box.innerHTML = APP_LINK_IDS
+    .map((id) => {
+      const info = WORKLOAD_INFO[id];
+      if (!info || !info.url) return '';
+      const kind = info.uiKind || 'public';
+      const host = info.url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+      return `<a class="app-link" href="${esc(info.url)}" target="_blank" rel="noopener">
+        <span class="al-top"><span class="al-name">${esc(id)}</span><span class="al-kind ${kind}">${esc(t(`access.${kind}`))}</span></span>
+        <span class="al-host">${esc(host)}</span>
+      </a>`;
+    })
+    .join('');
+}
+
 // ---------------------------------------------------------------- dashboards
 function chartSpecFor(tab) {
   return CHART_SPECS[tab] || [];
@@ -1499,10 +1549,13 @@ function renderDrawer() {
     kind.textContent = `${t('drawer.workload')} · ${workload.kind}`;
     const resource = workload.resources || {};
     const pods = (workload.pods || []).slice(0, 8);
-    const links = [];
-    if (info.url) {
-      links.push(`<a href="${esc(info.url)}" target="_blank" rel="noopener">${esc(info.url)}${info.access ? ` · ${esc(t('drawer.access'))}` : ''}</a>`);
-    }
+    const accessKind = info.uiKind || 'public';
+    const openBlock = info.url
+      ? `<a class="drawer-open" href="${esc(info.url)}" target="_blank" rel="noopener">
+          <span>${esc(t('drawer.open'))} ${esc(workloadName(workload))} ↗</span>
+          <small>${esc(t(`access.${accessKind}`))}${accessKind === 'public' ? ` · ${esc(t('access.readonly'))}` : ''}</small>
+        </a>`
+      : `<p class="drawer-note">${esc(t('drawer.noPublic'))}</p>`;
     body.innerHTML = `
       <p>${esc(tx(info.simple))}</p>
       <p class="drawer-note">${esc(workload.namespace)} · ${esc(workload.kind)}</p>
@@ -1538,7 +1591,7 @@ function renderDrawer() {
           </tr>`).join('')}</tbody>
         </table>`}
       <h3>${esc(t('drawer.links'))}</h3>
-      ${links.length ? `<div class="drawer-links">${links.join('')}</div>` : `<p class="drawer-note">${esc(t('drawer.noPublic'))}</p>`}
+      ${openBlock}
       ${isPrimary ? '' : `<p class="drawer-note">${esc(t('drawer.internals'))}</p>`}
     `;
     return;
@@ -1634,6 +1687,7 @@ function applyLang() {
   if (state.data) {
     renderStatus();
     renderWorkloadGrid();
+    renderAppLinks();
     if (state.drawer) renderDrawer();
   }
   renderFaq();
@@ -1654,6 +1708,7 @@ async function refresh() {
     state.data = data;
     renderStatus();
     renderWorkloadGrid();
+    renderAppLinks();
     if (state.drawer) renderDrawer();
     // El contenido crece al llegar los datos: si se entró con #seccion, el
     // navegador puede haber saltado antes de que existiera la altura final.
