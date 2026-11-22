@@ -110,7 +110,7 @@
       - kube-system
       - get
       - secret
-      - "{{ k3s_backup_r2_secret }}"
+      - "{{ backup_r2_secret }}"
   register: verify_backup_r2_secret
   changed_when: false
   failed_when: false

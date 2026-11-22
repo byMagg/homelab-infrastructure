@@ -10,7 +10,7 @@
 
 - name: Crear directorio de backups
   ansible.builtin.file:
-    path: "{{ k3s_backup_dir }}"
+    path: "{{ backup_dir }}"
     state: directory
     owner: root
     group: root
@@ -59,7 +59,7 @@
 
 - name: Comprobar si ya existe algún backup
   ansible.builtin.find:
-    paths: "{{ k3s_backup_dir }}"
+    paths: "{{ backup_dir }}"
     patterns: "k3s-state-*.tar.gz"
   register: backup_existing
 

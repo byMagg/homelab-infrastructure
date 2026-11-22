@@ -6,11 +6,11 @@ umask 077
 
 K3S=/usr/local/bin/k3s
 DATA_DIR=/var/lib/rancher/k3s/server
-DEST={{ k3s_backup_dir }}
+DEST={{ backup_dir }}
 SECRET_NS=kube-system
-SECRET_NAME={{ k3s_backup_r2_secret }}
-RETENTION_LOCAL={{ k3s_backup_local_retention }}
-RETENTION_DAYS={{ k3s_backup_r2_retention_days }}
+SECRET_NAME={{ backup_r2_secret }}
+RETENTION_LOCAL={{ backup_local_retention }}
+RETENTION_DAYS={{ backup_r2_retention_days }}
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 NAME="k3s-state-${STAMP}.tar.gz"
 

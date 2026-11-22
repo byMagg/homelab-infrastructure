@@ -21,7 +21,7 @@ disable_swap: true
 # cluster0 usa SQLite/kine, NO etcd: `k3s etcd-snapshot` no sirve aquí. El
 # backup es una copia consistente de state.db + token + tls/cred/manifests
 # (ver docs/fase-7.md). Timer diario a las 03:15 (RPO 24 h).
-k3s_backup_schedule: "*-*-* 03:15:00"
-k3s_backup_local_retention: 4  # 4 días en /var/backups/k3s
-k3s_backup_r2_secret: "r2-backup"  # Secret en kube-system (SealedSecret)
-k3s_backup_r2_retention_days: 14
+backup_schedule: "*-*-* 03:15:00"
+backup_local_retention: 4  # 4 días en /var/backups/k3s
+backup_r2_secret: "r2-backup"  # Secret en kube-system (SealedSecret)
+backup_r2_retention_days: 14
