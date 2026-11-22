@@ -159,7 +159,7 @@ const I18N = {
     'drawer.namespace': 'namespace',
     'drawer.kind': 'tipo',
     'drawer.status': 'estado',
-    'drawer.ready': 'listas',
+    'drawer.ready': 'listos',
     'drawer.restarts': 'reinicios',
     'drawer.cpu': 'CPU',
     'drawer.memory': 'memoria',

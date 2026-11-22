@@ -607,15 +607,15 @@ details p {
 .drawer-pods th {
   text-align: left; color: var(--dim); font-weight: 500; font-size: 9px;
   letter-spacing: .08em; text-transform: uppercase; padding: 4px 6px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--line); white-space: nowrap;
 }
 .drawer-pods td { padding: 5px 6px; border-bottom: 1px dashed var(--line); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.drawer-pods th:nth-child(1), .drawer-pods td:nth-child(1) { width: 30%; }
-.drawer-pods th:nth-child(2), .drawer-pods td:nth-child(2) { width: 17%; }
-.drawer-pods th:nth-child(3), .drawer-pods td:nth-child(3) { width: 18%; }
-.drawer-pods th:nth-child(4), .drawer-pods td:nth-child(4) { width: 12%; }
-.drawer-pods th:nth-child(5), .drawer-pods td:nth-child(5) { width: 11%; }
-.drawer-pods th:nth-child(6), .drawer-pods td:nth-child(6) { width: 12%; }
+.drawer-pods th:nth-child(1), .drawer-pods td:nth-child(1) { width: 28%; }
+.drawer-pods th:nth-child(2), .drawer-pods td:nth-child(2) { width: 16%; }
+.drawer-pods th:nth-child(3), .drawer-pods td:nth-child(3) { width: 13%; }
+.drawer-pods th:nth-child(4), .drawer-pods td:nth-child(4) { width: 15%; }
+.drawer-pods th:nth-child(5), .drawer-pods td:nth-child(5) { width: 13%; }
+.drawer-pods th:nth-child(6), .drawer-pods td:nth-child(6) { width: 15%; }
 .drawer-pods td:first-child { color: var(--text); }
 .drawer-pods .ok { color: var(--green); }
 .drawer-pods .warn { color: var(--amber); }
