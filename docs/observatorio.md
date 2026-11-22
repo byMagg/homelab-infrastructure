@@ -81,14 +81,31 @@ pulsar cualquier nodo se abre un cajón con su explicación y datos en vivo.
 
 ## Explicaciones, idiomas y enlaces directos
 
-- Cada bloque tiene una explicación en lenguaje claro **siempre visible** y un
-  desplegable de detalle técnico. No hay modo que activar.
+- Cada bloque tiene una explicación en lenguaje claro **siempre visible** y su
+  detalle técnico justo debajo, también visible. No hay desplegables ni modos
+  que activar.
 - Selector **ES / EN** (o `?lang=en`): traduce la interfaz. Los nombres de apps
   y estados de Argo se mantienen tal cual.
 - Recorrido de una petición en 5 pasos, con reproducción automática o manual.
 - Enlaces directos: `?node=edge`, `?workload=portfolio`, `?tab=web&range=6h`.
   Al abrirlos se muestran el cajón o la pestaña correspondientes.
 - Buscador de workloads y botón para mostrar las piezas internas del cluster.
+
+## Accesos de solo lectura
+
+La sección **Entrar en las aplicaciones** enlaza las apps con interfaz:
+
+| Tipo | Apps | Comportamiento |
+|---|---|---|
+| Público | portfolio, Homepage, observatorio | Abren directamente; son de solo lectura |
+| Cloudflare Access | Grafana, Argo CD | El visitante necesita pasar Access |
+| Solo LAN | Prometheus, Alertmanager, AdGuard | No se publican en Internet |
+
+No se publican credenciales ni se permite escribir. Para dar acceso público de
+solo lectura a Grafana, la vía soportada son los **dashboards compartidos
+externamente** (*Share → Share externally*): son de solo lectura y no permiten
+ejecutar PromQL arbitrario. Requiere una acción de admin en Grafana; Argo CD no
+tiene modo anónimo de solo lectura.
 
 ## API
 
@@ -172,6 +189,9 @@ chrome --headless=new --screenshot=/tmp/live.png \
 
 ## Pendiente
 
+- Publicar en Grafana los dashboards como *externamente compartidos* si se
+  quiere enlazar la UI real en solo lectura desde el observatorio (requiere
+  admin; Argo CD no ofrece modo anónimo).
 - Cache/rate limit en Cloudflare para `/live/api/status` si la página recibe
   mucho tráfico.
 - Monitor externo (Healthchecks/UptimeRobot) para avisar si el cluster entero

@@ -167,7 +167,7 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
   solo lectura).
 - Observatorio público: `kubernetes/apps/observatory` sirve
   `dbarroso.dev/live` con explicaciones en lenguaje claro (y detalle técnico
-  desplegable), topología clicable, recorrido guiado de una petición, fichas de
+  visible), topología clicable, recorrido guiado de una petición, fichas de
   cada workload y dashboards nativos con pestañas y rangos. Un BFF en Node
   consulta Prometheus, la API de Kubernetes y Alertmanager con permisos de solo
   lectura; no expone secretos, IPs ni PromQL libre. ES/EN y enlaces directos

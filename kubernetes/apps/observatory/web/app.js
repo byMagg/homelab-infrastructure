@@ -15,7 +15,7 @@ const I18N = {
     'hero.title1': 'Tres ordenadores pequeños.',
     'hero.title2': 'Todo esto, en vivo.',
     'hero.lede': 'Esta página la sirve un cluster de Kubernetes montado en casa con tres Raspberry Pi. No es una maqueta: los datos salen del sistema real mientras lo miras.',
-    'hero.simple': 'No hace falta saber de servidores. Cada bloque trae una explicación sencilla y, si quieres más, un detalle técnico que puedes desplegar.',
+    'hero.simple': 'No hace falta saber de servidores. Cada bloque trae una explicación sencilla y su detalle técnico justo debajo.',
     'hero.journey': 'Recorrer una visita',
     'hero.dashboards': 'Ver dashboards',
     'hero.pieces': 'Entender las piezas',
@@ -237,7 +237,7 @@ const I18N = {
     'hero.title1': 'Three tiny computers.',
     'hero.title2': 'All of this, live.',
     'hero.lede': 'This page is served by a Kubernetes cluster built at home with three Raspberry Pis. It is not a mock-up: the data comes from the real system while you watch.',
-    'hero.simple': 'You do not need to know about servers. Every block has a plain explanation and, if you want more, a technical detail you can expand.',
+    'hero.simple': 'You do not need to know about servers. Every block has a plain explanation and its technical detail right below.',
     'hero.journey': 'Take a tour',
     'hero.dashboards': 'See dashboards',
     'hero.pieces': 'Understand the pieces',
@@ -574,6 +574,37 @@ const WORKLOAD_INFO = {
   },
 };
 
+const UI_NAMES = {
+  portfolio: 'Portfolio',
+  homepage: 'Homepage',
+  adguard: 'AdGuard',
+  cloudflared: 'Cloudflare Tunnel',
+  observatory: { es: 'Observatorio', en: 'Observatory' },
+  grafana: 'Grafana',
+  prometheus: 'Prometheus',
+  alertmanager: 'Alertmanager',
+  traefik: 'Traefik',
+  'argocd-server': 'Argo CD',
+  'sealed-secrets': 'Sealed Secrets',
+  'image-updater': 'Image Updater',
+  'node-exporter': 'Node Exporter',
+  'kube-state-metrics': 'Kube State Metrics',
+  'metrics-server': 'Metrics Server',
+  coredns: 'CoreDNS',
+  'local-path-provisioner': 'Local Path Provisioner',
+  'argocd-repo-server': 'Argo CD Repo Server',
+  'argocd-dex-server': 'Argo CD Dex',
+  'argocd-redis': 'Argo CD Redis',
+  'argocd-applicationset-controller': 'Argo CD ApplicationSet',
+  'argocd-notifications-controller': 'Argo CD Notifications',
+};
+
+function uiName(id) {
+  const value = UI_NAMES[id];
+  if (!value) return id;
+  return typeof value === 'string' ? value : value[state.lang] || value.es;
+}
+
 const NODE_INFO = {
   browser: {
     kind: 'drawer.browser',
@@ -831,7 +862,7 @@ function workloadText(workload) {
 }
 
 function workloadName(workload) {
-  return workload.id;
+  return uiName(workload.id);
 }
 
 function allWorkloads() {
@@ -1179,7 +1210,7 @@ function renderAppLinks() {
       const kind = info.uiKind || 'public';
       const host = info.url.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
       return `<a class="app-link" href="${esc(info.url)}" target="_blank" rel="noopener">
-        <span class="al-top"><span class="al-name">${esc(id)}</span><span class="al-kind ${kind}">${esc(t(`access.${kind}`))}</span></span>
+        <span class="al-top"><span class="al-name">${esc(uiName(id))}</span><span class="al-kind ${kind}">${esc(t(`access.${kind}`))}</span></span>
         <span class="al-host">${esc(host)}</span>
       </a>`;
     })
