@@ -647,6 +647,8 @@ const state = {
 
 const params = new URLSearchParams(location.search);
 if (['es', 'en'].includes(params.get('lang'))) state.lang = params.get('lang');
+if (['cluster', 'web', 'api', 'pods'].includes(params.get('tab'))) state.dash.tab = params.get('tab');
+if (['15m', '1h', '6h'].includes(params.get('range'))) state.dash.range = params.get('range');
 
 const $ = (id) => document.getElementById(id);
 
@@ -1721,6 +1723,9 @@ function init() {
         other.classList.toggle('active', active);
         other.setAttribute('aria-selected', active ? 'true' : 'false');
       });
+      const url = new URL(location.href);
+      url.searchParams.set('tab', state.dash.tab);
+      if (history.replaceState) history.replaceState(null, '', url);
       renderDashboards();
     });
   });
@@ -1729,6 +1734,9 @@ function init() {
     btn.addEventListener('click', () => {
       state.dash.range = btn.dataset.range;
       document.querySelectorAll('.range-btn').forEach((other) => other.classList.toggle('active', other === btn));
+      const url = new URL(location.href);
+      url.searchParams.set('range', state.dash.range);
+      if (history.replaceState) history.replaceState(null, '', url);
       loadDashboards(true);
     });
   });
@@ -1771,6 +1779,15 @@ function init() {
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(renderDashboards, 180);
+  });
+
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    const active = btn.dataset.tab === state.dash.tab;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('.range-btn').forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.range === state.dash.range);
   });
 
   // Enlace directo: ?node=edge o ?workload=portfolio
