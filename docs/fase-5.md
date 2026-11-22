@@ -8,6 +8,7 @@ Stack ligero para ver el estado del cluster y de los tres Pis sin el peso de
 | `node-exporter` | `v1.10.0` | Métricas del host (temperatura, CPU, RAM, disco, red) |
 | `kube-state-metrics` | `v2.15.0` | Estado de nodos, pods, deployments, reinicios |
 | `Prometheus` | `v3.5.0` | Scrape cada 30 s, retención 7 d / 3 GB |
+| `Alertmanager` | `v0.35.0` | Agrupa las alertas; receiver `null` (sin envío todavía) |
 | `Grafana` | `13.1.0` | Dashboard `Homelab - Cluster` |
 
 Namespace `observability`, gestionado por Argo CD con
@@ -18,6 +19,8 @@ Namespace `observability`, gestionado por Argo CD con
 - Grafana: <http://grafana.homelab.home.arpa>
 - Prometheus: <http://prometheus.homelab.home.arpa> (UI y consultas PromQL,
   sin autenticación; solo accesible desde la LAN).
+- Alertmanager: <http://alertmanager.homelab.home.arpa> (alertas agrupadas;
+  también solo LAN y sin autenticación).
 - Anónimo: rol **Viewer** (solo lectura).
 - Admin: `admin` / `admin`; Grafana obliga a cambiarla al primer acceso. No hay
   Secret en Git a propósito.
@@ -71,6 +74,42 @@ volumen).
 Sustituye a Headlamp, que pedía pegar en cada navegador un token de
 ServiceAccount con `cluster-admin` y caducidad de una hora.
 
+## Alertas
+
+Prometheus evalúa las reglas de `kubernetes/apps/observability/rules.yaml`
+cada 30 s y las envía a Alertmanager (`v0.35.0`), que las agrupa por
+`alertname` y `node`.
+
+| Alerta | Condición | Para |
+|---|---|---|
+| `NodeNotReady` | `kube_node_status_condition` no `Ready` | 5 min |
+| `NodeTemperatureHigh` | CPU > 75 °C | 10 min |
+| `NodeFilesystemAlmostFull` | < 15 % libre en `/` | 10 min |
+| `TargetDown` | `up == 0` | 5 min |
+| `K3sBackupStale` | último backup > 26 h | 10 min |
+| `K3sBackupMissing` | no existe la métrica de backup | 15 min |
+| `AlertmanagerDown` | Prometheus no scrapea Alertmanager | 5 min |
+
+El receiver es **`null`**: las alertas se ven en Prometheus (`/alerts`) y en la
+UI de Alertmanager, pero no se envía ningún email/push. Para activar las
+notificaciones más adelante basta con añadir un receiver `email` (o `webhook`
+para ntfy/Telegram) en `alertmanager-config` y cambiar `route.receiver`. Las
+credenciales SMTP irían en un `SealedSecret`, igual que `kube-system/r2-backup`.
+
+`k3s_backup_last_success_timestamp_seconds` lo escribe el script de backup en
+`/var/lib/node-exporter/textfile/k3s_backup.prom`; `node-exporter` lo expone con
+el textfile collector y la regla avisa si el último backup tiene más de 26 h.
+
+Prometheus **no recarga la configuración solo**. Tras cambiar
+`prometheus-config` o `prometheus-rules`:
+
+```bash
+kubectl -n observability rollout restart deploy/prometheus
+# o, sin reiniciar:
+kubectl -n observability exec deploy/prometheus -- \
+  wget -qO- --post-data='' http://localhost:9090/-/reload
+```
+
 ## Firewall
 
 Prometheus corre en la red de pods y scrapea la IP de cada nodo, así que UFW
@@ -99,6 +138,9 @@ targets quedan `down` aunque los pods estén `Running`.
    `scrape_interval` o filtrar métricas de cadvisor.
 6. **local-path no comparte datos.** Prometheus y Grafana quedan atados al nodo
    donde se creó su PVC; no hay HA (una réplica cada uno).
+7. **Alertmanager usa `emptyDir`.** Los silencios y el estado interno no
+   sobreviven a un reinicio del pod; las reglas y el enrutado sí, porque viven
+   en el ConfigMap.
 
 ## Verificación
 
@@ -107,18 +149,21 @@ kubectl -n observability get pods,pvc
 kubectl -n observability port-forward svc/prometheus 9090:9090 &
 curl -s localhost:9090/api/v1/targets | jq -r '.data.activeTargets[] | "\(.labels.job)\t\(.health)"'
 curl -s 'localhost:9090/api/v1/query?query=node_thermal_zone_temp' | jq .
+curl -s localhost:9090/api/v1/rules | jq -r '.data.groups[].rules[].name'
 curl -I http://grafana.homelab.home.arpa
+curl -I http://alertmanager.homelab.home.arpa
 ```
 
-Todos los targets (`prometheus`, `node-exporter` ×3, `kube-state-metrics`,
-`kubelet` ×3, `cadvisor` ×3) deben estar `up`. `node-exporter` tolera el taint
-de cluster2 (`operator: Exists`), así que también se scrapea el nodo de 2 GB;
-Prometheus y Grafana se quedan en los nodos de 4 GB.
+Todos los targets (`prometheus`, `alertmanager`, `node-exporter` ×3,
+`kube-state-metrics`, `kubelet` ×3, `cadvisor` ×3) deben estar `up`.
+`node-exporter` tolera el taint de cluster2 (`operator: Exists`), así que
+también se scrapea el nodo de 2 GB; Prometheus, Grafana y Alertmanager se
+quedan en los nodos de 4 GB.
 
 ## Pendiente
 
-1. Alertas a ntfy (temperatura > 75 °C, nodo `NotReady`, disco > 85 %,
-   target caído).
+1. **Notificaciones** de las alertas (email, ntfy o Telegram). Las reglas y
+   Alertmanager ya están montados con receiver `null`; falta el canal.
 2. Dashboard por pod (CPU/memoria de contenedores) usando cadvisor.
 3. Métricas del servidor de k3s (apiserver, etcd/SQLite) y de AdGuard.
 4. Valorar VictoriaMetrics o retención mayor si el volumen de series crece.

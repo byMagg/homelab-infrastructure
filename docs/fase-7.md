@@ -35,7 +35,8 @@ k3s-datastore-backup
    ├─ sqlite3 .backup  ──►  state.db consistente
    ├─ tar.gz(state.db + token + tls/cred/manifests + etc/)
    ├─ retención local (4 copias = 4 días)
-   └─ rclone ──► Cloudflare R2 (14 días)
+   ├─ rclone ──► Cloudflare R2 (14 días)
+   └─ k3s_backup.prom ──► node-exporter ──► alerta K3sBackupStale
                     ▲
                     └─ credenciales en el Secret `kube-system/r2-backup`,
                        creado desde un SealedSecret
@@ -93,6 +94,15 @@ sudo /usr/local/sbin/k3s-datastore-backup
 
 El journal debe mostrar `copia local creada` y, si R2 está configurado,
 `subida a R2 correcta`. Si aún no lo está, mostrará `solo copia local`.
+
+Métrica que consume la regla `K3sBackupStale` de la fase 5:
+
+```bash
+sudo cat /var/lib/node-exporter/textfile/k3s_backup.prom
+# k3s_backup_last_success_timestamp_seconds <epoch>
+# k3s_backup_last_size_bytes <bytes>
+curl -s 'http://prometheus.homelab.home.arpa/api/v1/query?query=k3s_backup_last_success_timestamp_seconds'
+```
 
 ## Cloudflare R2
 

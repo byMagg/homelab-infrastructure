@@ -87,8 +87,9 @@ Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
       *(completada 2026-11-21)*
 - [ ] **Fase 4 — Secretos y TLS**: Sealed Secrets completado; pendiente el TLS
       interno con CA propia. *(secretos 2026-11-21)*
-- [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana y alertas a ntfy.
-      *(stack desplegado 2026-11-17; pendientes las alertas)*
+- [ ] **Fase 5 — Observabilidad**: Prometheus, Grafana, Alertmanager y reglas
+      de alerta; pendientes las notificaciones. *(alertas montadas con receiver
+      `null` el 2026-11-22)*
 - [x] **Fase 6 — Dominio público y portfolio**: Cloudflare Tunnel,
       `dbarroso.dev` y el CV publicado. *(túnel y 4 hostnames activos
       2026-11-21)*
@@ -175,9 +176,9 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
   en el SealedSecret `kube-system/r2-backup`. Restauración probada el 2026-11-22
   (18 s de caída, marcador posterior eliminado) con
   `k3s-datastore-restore`. Ver `docs/fase-7.md`.
-- Siguiente: alertas a ntfy (fase 5), hardening del build del portfolio
-  (fase 6b), PVCs de las apps (fase 7b) y el TLS interno con CA propia
-  (fase 4).
+- Siguiente: notificaciones de las alertas (fase 5), hardening del build del
+  portfolio (fase 6b), PVCs de las apps (fase 7b) y el TLS interno con CA
+  propia (fase 4).
 
 ## Ejecución
 
