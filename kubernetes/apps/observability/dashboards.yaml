@@ -1376,7 +1376,10 @@ data:
               "id": "organize",
               "options": {
                 "excludeByName": {
-                  "Time": true
+                  "Time": true,
+                  "Time #A": true,
+                  "Time #B": true,
+                  "Time #C": true
                 },
                 "renameByName": {
                   "container": "Contenedor",
