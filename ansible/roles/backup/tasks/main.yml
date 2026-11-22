@@ -1,0 +1,71 @@
+---
+- name: Instalar dependencias del backup
+  ansible.builtin.apt:
+    name:
+      - rclone
+      - sqlite3
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Crear directorio de backups
+  ansible.builtin.file:
+    path: "{{ k3s_backup_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0700"
+
+- name: Instalar script de backup
+  ansible.builtin.template:
+    src: k3s-datastore-backup.sh.j2
+    dest: /usr/local/sbin/k3s-datastore-backup
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Instalar script de restauración
+  ansible.builtin.template:
+    src: k3s-datastore-restore.sh.j2
+    dest: /usr/local/sbin/k3s-datastore-restore
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Instalar unidad systemd del backup
+  ansible.builtin.template:
+    src: k3s-backup.service.j2
+    dest: /etc/systemd/system/k3s-backup.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Recargar systemd
+
+- name: Instalar timer del backup
+  ansible.builtin.template:
+    src: k3s-backup.timer.j2
+    dest: /etc/systemd/system/k3s-backup.timer
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Recargar systemd
+
+- name: Habilitar y arrancar el timer
+  ansible.builtin.systemd:
+    name: k3s-backup.timer
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Comprobar si ya existe algún backup
+  ansible.builtin.find:
+    paths: "{{ k3s_backup_dir }}"
+    patterns: "k3s-state-*.tar.gz"
+  register: backup_existing
+
+# Primer backup en el momento de instalar; el resto los hace el timer.
+- name: Crear el primer backup
+  ansible.builtin.command:
+    cmd: /usr/local/sbin/k3s-datastore-backup
+  when: backup_existing.matched | int == 0
+  changed_when: true

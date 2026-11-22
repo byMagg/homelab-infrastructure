@@ -66,6 +66,57 @@
   changed_when: false
   tags: [verify]
 
+# --- Fase 7: backups -------------------------------------------------------
+- name: Comprobar el timer de backup de k3s  # noqa: command-instead-of-module
+  ansible.builtin.command:
+    cmd: systemctl is-active k3s-backup.timer
+  register: verify_backup_timer
+  changed_when: false
+  failed_when: false
+  when: inventory_hostname in groups['k3s_server']
+  tags: [verify]
+
+- name: Verificar que el timer está activo
+  ansible.builtin.assert:
+    that:
+      - verify_backup_timer.stdout == 'active'
+    fail_msg: k3s-backup.timer no está activo; aplica ansible/playbooks/phase7.yml
+  when: inventory_hostname in groups['k3s_server']
+  tags: [verify]
+
+- name: Buscar backups locales recientes
+  ansible.builtin.find:
+    paths: /var/backups/k3s
+    patterns: "k3s-state-*.tar.gz"
+    age: "-12h"
+  register: verify_backups
+  when: inventory_hostname in groups['k3s_server']
+  tags: [verify]
+
+- name: Verificar que hay un backup de las últimas 12 h
+  ansible.builtin.assert:
+    that:
+      - verify_backups.matched | int > 0
+    fail_msg: No hay ningún backup de k3s de las últimas 12 h
+  when: inventory_hostname in groups['k3s_server']
+  tags: [verify]
+
+- name: Comprobar si existe el Secret de R2
+  ansible.builtin.command:
+    argv:
+      - /usr/local/bin/k3s
+      - kubectl
+      - -n
+      - kube-system
+      - get
+      - secret
+      - "{{ k3s_backup_r2_secret }}"
+  register: verify_backup_r2_secret
+  changed_when: false
+  failed_when: false
+  when: inventory_hostname in groups['k3s_server']
+  tags: [verify]
+
 - name: Mostrar resumen
   ansible.builtin.debug:
     msg:
@@ -75,4 +126,7 @@
       - "servicios: {{ verify_services.results | map(attribute='stdout') | list }}"
       - "watchdog: {{ verify_watchdog.stat.exists }}"
       - "throttled: {{ verify_throttled.stdout }}"
+      - "backup_timer: {{ verify_backup_timer.stdout | default('no aplica') }}"
+      - "backups_12h: {{ verify_backups.matched | default('no aplica') }}"
+      - "r2_configurado: {{ 'no aplica' if inventory_hostname not in groups['k3s_server'] else ((verify_backup_r2_secret.rc | default(1)) == 0) }}"
   tags: [verify]

@@ -1,0 +1,10 @@
+[Unit]
+Description=Timer del backup de k3s (diario)
+
+[Timer]
+OnCalendar={{ k3s_backup_schedule }}
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

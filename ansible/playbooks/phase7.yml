@@ -1,0 +1,7 @@
+---
+- name: Fase 7 - backups del datastore de k3s
+  hosts: k3s_server
+  become: true
+  gather_facts: true
+  roles:
+    - backup

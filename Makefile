@@ -3,7 +3,7 @@ VENV := .venv
 ANSIBLE := $(VENV)/bin/ansible
 ANSIBLE_PLAYBOOK := $(VENV)/bin/ansible-playbook
 
-.PHONY: ping base security pi verify phase0 cluster
+.PHONY: ping base security pi verify phase0 cluster backup
 
 ping:
 	$(ANSIBLE) all -m ping
@@ -19,6 +19,9 @@ pi:
 
 cluster:
 	$(ANSIBLE_PLAYBOOK) ansible/playbooks/phase1.yml
+
+backup:
+	$(ANSIBLE_PLAYBOOK) ansible/playbooks/phase7.yml
 
 verify:
 	$(ANSIBLE_PLAYBOOK) ansible/playbooks/verify.yml

@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# Backup consistente del datastore SQLite de k3s (cluster0 usa kine, no etcd).
+# Generado por Ansible (rol backup). No editar en el nodo: docs/fase-7.md
+set -euo pipefail
+umask 077
+
+K3S=/usr/local/bin/k3s
+DATA_DIR=/var/lib/rancher/k3s/server
+DEST={{ k3s_backup_dir }}
+SECRET_NS=kube-system
+SECRET_NAME={{ k3s_backup_r2_secret }}
+RETENTION_LOCAL={{ k3s_backup_local_retention }}
+RETENTION_DAYS={{ k3s_backup_r2_retention_days }}
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+NAME="k3s-state-${STAMP}.tar.gz"
+
+exec 9>/run/k3s-datastore-backup.lock
+flock -n 9 || { echo "ya hay un backup en curso"; exit 0; }
+
+mkdir -p "$DEST"
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+
+# Copia online y consistente con la API de backup de SQLite: no se copian a
+# mano state.db/-wal mientras k3s escribe.
+python3 - "$DATA_DIR/db/state.db" "$TMP/state.db" <<'PY'
+import sqlite3
+import sys
+
+src = sqlite3.connect(f"file:{sys.argv[1]}?mode=ro", uri=True)
+dst = sqlite3.connect(sys.argv[2])
+with dst:
+    src.backup(dst)
+dst.close()
+src.close()
+PY
+
+# El token es imprescindible para restaurar (cifra datos del bootstrap).
+install -m 600 "$DATA_DIR/token" "$TMP/token"
+mkdir -p "$TMP/etc" "$TMP/server"
+cp -a /etc/rancher/k3s/. "$TMP/etc/"
+# Con SQLite, k3s NO reconstruye estas CA desde el datastore: van en el backup
+# para poder restaurar en un nodo nuevo sin romper la confianza de los agentes.
+cp -a "$DATA_DIR/tls" "$TMP/server/tls"
+cp -a "$DATA_DIR/cred" "$TMP/server/cred"
+cp -a "$DATA_DIR/manifests" "$TMP/server/manifests"
+
+tar -czf "$DEST/$NAME" -C "$TMP" state.db token etc server
+sha256sum "$DEST/$NAME" | awk '{print $1}' > "$DEST/$NAME.sha256"
+chmod 600 "$DEST/$NAME" "$DEST/$NAME.sha256"
+logger -t k3s-backup "copia local creada: $DEST/$NAME"
+
+# Retención local y limpieza de checksums huérfanos.
+count=$(ls -1 "$DEST"/k3s-state-*.tar.gz 2>/dev/null | wc -l)
+if [ "$count" -gt "$RETENTION_LOCAL" ]; then
+  ls -1t "$DEST"/k3s-state-*.tar.gz | tail -n +"$((RETENTION_LOCAL + 1))" | xargs -r rm -f
+fi
+for sums in "$DEST"/k3s-state-*.sha256; do
+  [ -e "$sums" ] || continue
+  [ -e "${sums%.sha256}" ] || rm -f "$sums"
+done
+
+# Réplica en R2. El Secret lo crea Argo desde un SealedSecret; si aún no
+# existe, el nodo conserva solo las copias locales.
+if ! "$K3S" kubectl -n "$SECRET_NS" get secret "$SECRET_NAME" >/dev/null 2>&1; then
+  logger -t k3s-backup "R2 no configurado ($SECRET_NS/$SECRET_NAME); solo copia local"
+  exit 0
+fi
+
+"$K3S" kubectl -n "$SECRET_NS" get secret "$SECRET_NAME" -o json > "$TMP/secret.json"
+get_secret() {
+  python3 - "$TMP/secret.json" "$1" <<'PY'
+import base64
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as fh:
+    data = json.load(fh)["data"]
+sys.stdout.write(base64.b64decode(data[sys.argv[2]]).decode())
+PY
+}
+
+FOLDER=$(get_secret folder)
+[ -n "$FOLDER" ] || FOLDER=k3s
+
+# rclone: provider Cloudflare R2 fija region=auto y path-style.
+export RCLONE_CONFIG_R2_TYPE=s3
+export RCLONE_CONFIG_R2_PROVIDER=Cloudflare
+export RCLONE_CONFIG_R2_ENDPOINT="$(get_secret endpoint)"
+export RCLONE_CONFIG_R2_ACCESS_KEY_ID="$(get_secret access_key)"
+export RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$(get_secret secret_key)"
+export RCLONE_CONFIG_R2_REGION="$(get_secret region)"
+export RCLONE_CONFIG_R2_NO_CHECK_BUCKET=true
+REMOTE="r2:$(get_secret bucket)/${FOLDER}"
+
+rclone copyto "$DEST/$NAME" "$REMOTE/$NAME" --s3-no-head --config /dev/null
+rclone copyto "$DEST/$NAME.sha256" "$REMOTE/$NAME.sha256" --s3-no-head --config /dev/null
+rclone delete "$REMOTE" --min-age "${RETENTION_DAYS}d" --include 'k3s-state-*' --config /dev/null
+logger -t k3s-backup "subida a R2 correcta: $REMOTE/$NAME"

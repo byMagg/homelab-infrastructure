@@ -1,0 +1,6 @@
+---
+k3s_backup_dir: /var/backups/k3s
+k3s_backup_schedule: "*-*-* 03:15:00"
+k3s_backup_local_retention: 4
+k3s_backup_r2_secret: r2-backup
+k3s_backup_r2_retention_days: 14

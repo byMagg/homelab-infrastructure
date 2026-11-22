@@ -1,0 +1,11 @@
+[Unit]
+Description=Backup consistente del datastore SQLite de k3s
+Wants=network-online.target
+After=network-online.target k3s.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/k3s-datastore-backup
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

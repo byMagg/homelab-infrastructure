@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Restaura un backup del datastore SQLite de k3s. Uso:
+#   sudo k3s-datastore-restore <archivo.tar.gz> --yes [--new-host]
+# `--new-host` restaura también tls/cred/manifests (nodo recién instalado).
+# Generado por Ansible (rol backup). No editar en el nodo: docs/fase-7.md
+set -euo pipefail
+
+ARCHIVE=${1:-}
+CONFIRM=${2:-}
+NEW_HOST=${3:-}
+DATA_DIR=/var/lib/rancher/k3s/server
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+OLD_DB="$DATA_DIR/db.pre-restore-$STAMP"
+
+die() { echo "ERROR: $*" >&2; exit 1; }
+
+[ "$(id -u)" -eq 0 ] || die "ejecuta con sudo"
+[ -n "$ARCHIVE" ] && [ "$CONFIRM" = "--yes" ] || die "uso: $0 <archivo.tar.gz> --yes [--new-host]"
+[ -z "$NEW_HOST" ] || [ "$NEW_HOST" = "--new-host" ] || die "opción desconocida: $NEW_HOST"
+[ -f "$ARCHIVE" ] || die "no existe $ARCHIVE"
+[ -f "$ARCHIVE.sha256" ] || die "falta $ARCHIVE.sha256"
+
+expected=$(cat "$ARCHIVE.sha256")
+actual=$(sha256sum "$ARCHIVE" | awk '{print $1}')
+[ "$expected" = "$actual" ] || die "checksum incorrecto: el archivo está corrupto"
+
+TMP=$(mktemp -d)
+trap 'rm -rf "$TMP"' EXIT
+tar -xzf "$ARCHIVE" -C "$TMP"
+[ -s "$TMP/state.db" ] || die "el backup no contiene state.db"
+[ -s "$TMP/token" ] || die "el backup no contiene el token del servidor"
+
+echo "Parando k3s..."
+systemctl stop k3s
+
+echo "Apartando el datastore actual en $OLD_DB"
+mv "$DATA_DIR/db" "$OLD_DB"
+mkdir -p "$DATA_DIR/db"
+chmod 700 "$DATA_DIR/db"
+install -m 600 "$TMP/state.db" "$DATA_DIR/db/state.db"
+# El token debe ser el mismo que cuando se tomó el backup, o los datos
+# cifrados del bootstrap no se pueden leer.
+install -m 600 "$TMP/token" "$DATA_DIR/token"
+
+if [ "$NEW_HOST" = "--new-host" ]; then
+  [ -d "$TMP/server/tls" ] || die "el backup no incluye server/tls; usa uno posterior a 2026-11-22"
+  for dir in tls cred manifests; do
+    [ -d "$TMP/server/$dir" ] || continue
+    rm -rf "$DATA_DIR/$dir"
+    cp -a "$TMP/server/$dir" "$DATA_DIR/$dir"
+  done
+  echo "Restaurados tls, cred y manifests del backup"
+fi
+
+echo "Arrancando k3s..."
+systemctl start k3s
+
+for _ in $(seq 1 60); do
+  if /usr/local/bin/k3s kubectl get --raw /readyz >/dev/null 2>&1; then
+    echo "k3s listo. Datastore anterior en $OLD_DB"
+    /usr/local/bin/k3s kubectl get nodes
+    exit 0
+  fi
+  sleep 3
+done
+
+echo "k3s no respondió en 180 s. Revisa: journalctl -u k3s -n 100" >&2
+echo "Puedes volver atrás con: systemctl stop k3s && rm -rf $DATA_DIR/db && mv $OLD_DB $DATA_DIR/db && systemctl start k3s" >&2
+exit 1
