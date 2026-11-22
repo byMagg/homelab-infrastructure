@@ -145,6 +145,16 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   El timer es `k3s-backup.timer` (diario a las 03:15). El token va en el
   archivo: sin él el snapshot no se puede descifrar. `rclone` 1.60.1 de Trixie
   necesita `--s3-no-head` con R2.
+- Observatorio (`kubernetes/apps/observatory`): el Ingress usa PathPrefix
+  `/live` sobre el host del portfolio; si se cambia el prefijo hay que
+  actualizar `server.js`, `index.html` y los assets. Los ficheros web viven en
+  un `configMapGenerator`; Kustomize reescribe el nombre con hash en el
+  Deployment, así que un cambio de assets provoca rollout solo. El contenedor
+  corre como **65534** para leer el token de la ServiceAccount (modo 0640).
+  Nunca exponer Secrets, logs, IPs internas ni PromQL libre: el BFF solo tiene
+  consultas cerradas y el RBAC es de solo lectura. El probe público sale a
+  `https://dbarroso.dev/live/healthz` (hairpin por Cloudflare), por eso la
+  latencia parece alta desde dentro.
 
 ## Estado y convenciones
 
@@ -184,6 +194,12 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `kube-system/r2-backup`. Restauración probada el 2026-11-22 (18 s de caída)
   con `k3s-datastore-restore` y modo `--new-host`. Los PVC de AdGuard no entran
   en `state.db` (fase 7b). Ver `docs/fase-7.md`.
+- Observatorio público: `kubernetes/apps/observatory` sirve
+  `dbarroso.dev/live` (Ingress PathPrefix `/live`, gana a `/` del portfolio) y
+  `observatory.homelab.home.arpa`. BFF Node sin dependencias; consulta
+  Prometheus, la API de Kubernetes y Alertmanager con una ServiceAccount de solo
+  lectura. UI terminal, topología SVG, modo reclutador (`?recruiter=1`) y ES/EN
+  (`?lang=en`). Ver `docs/observatorio.md`.
 - Automatización: la Application raíz `homelab-root` (app-of-apps) gestiona
   `kubernetes/argocd/`, así que añadir una app es solo commitear su
   `*-app.yaml`. `.github/workflows/ansible.yml` linta Ansible. El tag del

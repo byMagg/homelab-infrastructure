@@ -28,10 +28,11 @@ El cluster sirve dos zonas:
   puertos en el router ni depender de IP fija. TLS lo termina Cloudflare (sin
   cert-manager).
 
-Hosts públicos activos: `dbarroso.dev` (portfolio), `lab.dbarroso.dev`
-(Homepage), y `grafana` / `argocd` detrás de Cloudflare Access. **Prometheus no
-se publica**: no tiene regla pública en el `Ingress` ni public hostname, y se
-consulta solo desde la LAN (su UI no tiene autenticación).
+Hosts públicos activos: `dbarroso.dev` (portfolio) y `dbarroso.dev/live`
+(observatorio en vivo), `lab.dbarroso.dev` (Homepage), y `grafana` / `argocd`
+detrás de Cloudflare Access. **Prometheus no se publica**: no tiene regla
+pública en el `Ingress` ni public hostname, y se consulta solo desde la LAN (su
+UI no tiene autenticación).
 
 Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
 `docs/fase-6.md`.
@@ -100,6 +101,8 @@ Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
       los PVC de las apps quedan para la fase 7b)*
 - [ ] **Fase 8 — Hardening y upgrades**: kube-bench, Kyverno, drill de upgrade.
 - [ ] **Fase 9 — Extras**: Tailscale, SLOs, documentación y posts.
+- [x] **Extra — Observatorio público**: `dbarroso.dev/live`, topología y capas
+      en vivo, modo reclutador y ES/EN. *(2026-11-22)*
 
 ## Estructura
 
@@ -116,6 +119,7 @@ docs/          Arquitectura, ADRs, runbooks, postmortems
 | [`docs/ansible-guia.md`](docs/ansible-guia.md) | Empezar con Ansible: modelo mental, mapa del repo y comandos seguros |
 | [`docs/despliegue.md`](docs/despliegue.md) | Cómo se automatiza el despliegue (Ansible + Argo CD) y qué queda manual |
 | [`docs/fase-7.md`](docs/fase-7.md) | Backup y recuperación: SQLite, R2, restauración y drill |
+| [`docs/observatorio.md`](docs/observatorio.md) | Observatorio público: capas, API, seguridad y despliegue |
 | [`docs/adr-001-ansible-en-lugar-de-terraform.md`](docs/adr-001-ansible-en-lugar-de-terraform.md) | Por qué Ansible y no Terraform |
 
 Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
@@ -157,6 +161,12 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
   `homepage.homelab.home.arpa` (y `lab.dbarroso.dev`): agrupa Argo CD, Grafana,
   Prometheus, AdGuard y el portfolio con monitorización HTTP, y muestra CPU/RAM
   del cluster vía el widget de Kubernetes (ServiceAccount de solo lectura).
+- Observatorio público: `kubernetes/apps/observatory` sirve
+  `dbarroso.dev/live` con una topología animada y capas de edge, cluster,
+  GitOps, workloads, backup y observabilidad. Un BFF en Node consulta
+  Prometheus, la API de Kubernetes y Alertmanager con permisos de solo lectura;
+  no expone secretos, IPs ni PromQL libre. Tiene modo reclutador y ES/EN. Ver
+  `docs/observatorio.md`.
 - Fase 6 desplegada: Cloudflare Tunnel `2026.11.1` con 2 réplicas conectadas al
   borde. Publicados `dbarroso.dev` (portfolio), `lab` (Homepage), y `grafana` /
   `argocd` con Access. `prometheus` no se publica: no tiene regla pública en el
