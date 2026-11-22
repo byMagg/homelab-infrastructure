@@ -20,18 +20,18 @@ const CACHE_MS = 15000;
 const TOKEN_FILE = '/var/run/secrets/kubernetes.io/serviceaccount/token';
 const CA_FILE = '/var/run/secrets/kubernetes.io/serviceaccount/ca.crt';
 
-const SHOWCASE = [
-  ['portfolio', 'portfolio'],
-  ['homepage', 'homepage'],
-  ['adguard', 'adguard'],
-  ['cloudflared', 'cloudflared'],
-  ['grafana', 'observability'],
-  ['prometheus', 'observability'],
-  ['alertmanager', 'observability'],
-  ['traefik', 'kube-system'],
-  ['argocd-server', 'argocd'],
-  ['sealed-secrets-controller', 'sealed-secrets'],
-];
+// Rangos permitidos para los dashboards. El cliente nunca manda PromQL.
+const RANGE_PRESETS = {
+  '15m': { seconds: 900, step: 30 },
+  '1h': { seconds: 3600, step: 60 },
+  '6h': { seconds: 21600, step: 300 },
+};
+
+// Nombres internos que se muestran con un id más legible.
+const WORKLOAD_ALIASES = {
+  'argocd-image-updater-controller': 'image-updater',
+  'sealed-secrets-controller': 'sealed-secrets',
+};
 
 const STATIC = new Map();
 for (const file of ['index.html', 'styles.css', 'app.js']) {
@@ -182,6 +182,113 @@ function imageTag(image) {
   return colon > slash ? clean.slice(colon + 1) : clean;
 }
 
+function parseCpu(value) {
+  if (!value) return 0;
+  const text = String(value);
+  if (text.endsWith('m')) return num(text.slice(0, -1)) || 0;
+  if (text.endsWith('n')) return (num(text.slice(0, -1)) || 0) / 1e6;
+  return (num(text) || 0) * 1000;
+}
+
+const MEM_UNITS = { Ki: 1024, Mi: 1024 ** 2, Gi: 1024 ** 3, Ti: 1024 ** 4, Pi: 1024 ** 5, K: 1e3, M: 1e6, G: 1e9, T: 1e12 };
+
+function parseMem(value) {
+  if (!value) return 0;
+  const match = String(value).trim().match(/^([0-9.]+)\s*([KMGTP]i?)?$/);
+  if (!match) return 0;
+  return Math.round(Number(match[1]) * (MEM_UNITS[match[2]] || 1));
+}
+
+function sumResources(containers) {
+  const out = { cpuRequestMillis: 0, memRequestBytes: 0, cpuLimitMillis: 0, memLimitBytes: 0 };
+  for (const container of containers || []) {
+    const requests = (container.resources || {}).requests || {};
+    const limits = (container.resources || {}).limits || {};
+    out.cpuRequestMillis += parseCpu(requests.cpu);
+    out.memRequestBytes += parseMem(requests.memory);
+    out.cpuLimitMillis += parseCpu(limits.cpu);
+    out.memLimitBytes += parseMem(limits.memory);
+  }
+  return out;
+}
+
+function selectorMatches(labels, selector) {
+  const wanted = (selector && selector.matchLabels) || {};
+  return Object.entries(wanted).every(([key, value]) => labels[key] === value);
+}
+
+function byPod(result) {
+  const out = {};
+  for (const sample of result) {
+    const metric = sample.metric || {};
+    if (!metric.namespace || !metric.pod) continue;
+    out[`${metric.namespace}/${metric.pod}`] = num(sample.value && sample.value[1]);
+  }
+  return out;
+}
+
+function podEntry(pod, cpuStats, memStats) {
+  const statuses = (pod.status && pod.status.containerStatuses) || [];
+  const ready = statuses.filter((status) => status.ready).length;
+  const restarts = statuses.reduce((total, status) => total + (status.restartCount || 0), 0);
+  const key = `${pod.metadata.namespace}/${pod.metadata.name}`;
+  const started = pod.status && pod.status.startTime ? new Date(pod.status.startTime).getTime() : null;
+  return {
+    name: pod.metadata.name,
+    node: pod.spec.nodeName || '',
+    phase: (pod.status && pod.status.phase) || 'Unknown',
+    ready,
+    containers: statuses.length,
+    restarts,
+    cpu: cpuStats[key] ?? null,
+    mem: memStats[key] ?? null,
+    ageSeconds: started ? Math.max(0, Math.round((Date.now() - started) / 1000)) : null,
+  };
+}
+
+function buildWorkloads(deployments, daemonsets, pods, cpuStats, memStats) {
+  const make = (object, kind) => {
+    const namespace = object.metadata.namespace;
+    const rawName = object.metadata.name;
+    const selector = object.spec.selector || {};
+    const matched = pods
+      .filter((pod) => pod.metadata.namespace === namespace)
+      .filter((pod) => selectorMatches(pod.metadata.labels || {}, selector));
+    const containers = (((object.spec.template || {}).spec || {}).containers) || [];
+    const first = containers[0] || {};
+    const entries = matched.map((pod) => podEntry(pod, cpuStats, memStats));
+    const ready = kind === 'Deployment'
+      ? (object.status && object.status.readyReplicas) || 0
+      : (object.status && object.status.numberReady) || 0;
+    const desired = kind === 'Deployment'
+      ? (object.spec.replicas ?? 1)
+      : (object.status && object.status.desiredNumberScheduled) || 0;
+    return {
+      id: WORKLOAD_ALIASES[rawName] || rawName,
+      name: rawName,
+      kind,
+      namespace,
+      ready,
+      desired,
+      image: first.image || '',
+      tag: imageTag(first.image),
+      createdAt: object.metadata.creationTimestamp || null,
+      cpu: entries.reduce((total, pod) => total + (pod.cpu || 0), 0),
+      mem: entries.reduce((total, pod) => total + (pod.mem || 0), 0),
+      restarts: entries.reduce((total, pod) => total + (pod.restarts || 0), 0),
+      resources: sumResources(containers),
+      pods: entries.sort((a, b) => a.name.localeCompare(b.name)),
+    };
+  };
+
+  return [
+    ...(deployments || []).map((item) => make(item, 'Deployment')),
+    ...(daemonsets || [])
+      .filter((item) => !item.metadata.name.startsWith('svclb-'))
+      .map((item) => make(item, 'DaemonSet')),
+  ].sort((a, b) => a.namespace.localeCompare(b.namespace) || a.id.localeCompare(b.id));
+}
+
 async function buildStatus() {
   const errors = new Set();
   const guard = async (label, fn, fallback, soft = false) => {
@@ -197,6 +304,7 @@ async function buildStatus() {
     nodesApi,
     podsApi,
     deploysApi,
+    daemonsetsApi,
     appsApi,
     alertsApi,
     cpuResult,
@@ -209,11 +317,14 @@ async function buildStatus() {
     targetsTotalResult,
     backupTsResult,
     backupSizeResult,
+    cpuPodsResult,
+    memPodsResult,
     probe,
   ] = await Promise.all([
     guard('kubernetes', () => kubeGet('/api/v1/nodes'), { items: [] }),
     guard('kubernetes', () => kubeGet('/api/v1/pods'), { items: [] }),
     guard('kubernetes', () => kubeGet('/apis/apps/v1/deployments'), { items: [] }),
+    guard('kubernetes', () => kubeGet('/apis/apps/v1/daemonsets'), { items: [] }),
     guard('kubernetes', () => kubeGet('/apis/argoproj.io/v1alpha1/applications'), { items: [] }),
     guard('alertmanager', () => fetchJson(`${ALERTMANAGER}/api/v2/alerts`), []),
     guard('prometheus', () => promQuery('100 - (avg by (node) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)'), []),
@@ -226,6 +337,8 @@ async function buildStatus() {
     guard('prometheus', () => promQuery('count(up)'), []),
     guard('prometheus', () => promQuery('k3s_backup_last_success_timestamp_seconds'), []),
     guard('prometheus', () => promQuery('k3s_backup_last_size_bytes'), []),
+    guard('prometheus', () => promQuery('sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{container!=""}[5m]))'), []),
+    guard('prometheus', () => promQuery('sum by (namespace, pod) (container_memory_working_set_bytes{container!=""})'), []),
     publicProbe(),
   ]);
 
@@ -307,23 +420,13 @@ async function buildStatus() {
     })
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  const deployMap = new Map();
-  for (const deploy of deploysApi.items || []) {
-    deployMap.set(`${deploy.metadata.namespace}/${deploy.metadata.name}`, deploy);
-  }
-  const workloads = SHOWCASE.map(([name, namespace]) => {
-    const deploy = deployMap.get(`${namespace}/${name}`);
-    if (!deploy) return null;
-    const container = ((deploy.spec.template || {}).spec || {}).containers || [{}];
-    return {
-      name,
-      namespace,
-      ready: (deploy.status && deploy.status.readyReplicas) || 0,
-      desired: (deploy.spec && deploy.spec.replicas) || 0,
-      image: container[0].image || '',
-      tag: imageTag(container[0].image),
-    };
-  }).filter(Boolean);
+  const workloads = buildWorkloads(
+    deploysApi.items || [],
+    daemonsetsApi.items || [],
+    pods,
+    byPod(cpuPodsResult),
+    byPod(memPodsResult),
+  );
 
   const alerts = (Array.isArray(alertsApi) ? alertsApi : [])
     .filter((alert) => alert.status && alert.status.state !== 'suppressed')
@@ -422,6 +525,95 @@ async function getStatus() {
   return cache.promise;
 }
 
+const dashboardCache = new Map();
+const DASHBOARD_TTL_MS = 60000;
+
+function seriesFrom(result, labelKey = 'node') {
+  return (result || [])
+    .map((sample) => {
+      const metric = sample.metric || {};
+      const label = labelKey ? metric[labelKey] || 'total' : 'total';
+      const points = (sample.values || [])
+        .map(([ts, value]) => [Number(ts) * 1000, num(value)])
+        .filter(([, value]) => value !== null);
+      return { label, points };
+    })
+    .filter((series) => series.points.length > 0);
+}
+
+async function buildDashboards(rangeKey) {
+  const { seconds, step } = RANGE_PRESETS[rangeKey];
+  const errors = new Set();
+  const guard = async (label, fn, fallback) => {
+    try {
+      return await fn();
+    } catch {
+      errors.add(label);
+      return fallback;
+    }
+  };
+  const range = (query) => promRange(query, seconds, step);
+
+  const [clusterCpu, clusterMem, clusterTemp, webRps, webErrors, webP95, apiRps, apiErrors, apiP95, topCpu, topMem] =
+    await Promise.all([
+      guard('cluster', () => range('100 - (avg by (node) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)'), []),
+      guard('cluster', () => range('100 * (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))'), []),
+      guard('cluster', () => range('node_thermal_zone_temp{type="cpu-thermal"}'), []),
+      guard('traefik', () => range('sum(rate(traefik_entrypoint_requests_total[5m]))'), []),
+      guard('traefik', () => range('100 * sum(rate(traefik_entrypoint_requests_total{code=~"5.."}[5m])) / clamp_min(sum(rate(traefik_entrypoint_requests_total[5m])), 0.001)'), []),
+      guard('traefik', () => range('histogram_quantile(0.95, sum by (le) (rate(traefik_entrypoint_request_duration_seconds_bucket{protocol!="websocket"}[5m])))'), []),
+      guard('apiserver', () => range('sum(rate(apiserver_request_total{job="kubelet"}[5m]))'), []),
+      guard('apiserver', () => range('100 * sum(rate(apiserver_request_total{job="kubelet",code=~"5.."}[5m])) / clamp_min(sum(rate(apiserver_request_total{job="kubelet"}[5m])), 0.001)'), []),
+      guard('apiserver', () => range('histogram_quantile(0.95, sum by (le) (rate(apiserver_request_duration_seconds_bucket{job="kubelet",verb!~"WATCH|CONNECT"}[5m])))'), []),
+      guard('pods', () => promQuery('topk(6, sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{container!=""}[5m])))'), []),
+      guard('pods', () => promQuery('topk(6, sum by (namespace, pod) (container_memory_working_set_bytes{container!=""}))'), []),
+    ]);
+
+  const top = (result) => (result || [])
+    .map((sample) => {
+      const metric = sample.metric || {};
+      return {
+        label: `${metric.namespace || '?'}/${metric.pod || '?'}`,
+        value: num(sample.value && sample.value[1]),
+      };
+    })
+    .filter((row) => row.value !== null);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    range: rangeKey,
+    step,
+    degraded: errors.size > 0,
+    degradedLayers: [...errors],
+    charts: {
+      cluster: {
+        cpu: seriesFrom(clusterCpu),
+        memory: seriesFrom(clusterMem),
+        temperature: seriesFrom(clusterTemp),
+      },
+      web: {
+        requests: seriesFrom(webRps, null),
+        errors: seriesFrom(webErrors, null),
+        latency: seriesFrom(webP95, null),
+      },
+      api: {
+        requests: seriesFrom(apiRps, null),
+        errors: seriesFrom(apiErrors, null),
+        latency: seriesFrom(apiP95, null),
+      },
+    },
+    top: { cpu: top(topCpu), memory: top(topMem) },
+  };
+}
+
+async function getDashboards(rangeKey) {
+  const cached = dashboardCache.get(rangeKey);
+  if (cached && Date.now() - cached.at < DASHBOARD_TTL_MS) return cached.data;
+  const data = await buildDashboards(rangeKey);
+  dashboardCache.set(rangeKey, { at: Date.now(), data });
+  return data;
+}
+
 function securityHeaders(res) {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'no-referrer');
@@ -491,6 +683,21 @@ const server = http.createServer(async (req, res) => {
     } catch (err) {
       console.error(`status: ${err.message}`);
       sendJson(res, 503, { error: 'status unavailable', generatedAt: new Date().toISOString() });
+    }
+    return;
+  }
+
+  if (pathname === `${PREFIX}/api/dashboards` || pathname === '/api/dashboards') {
+    const range = url.searchParams.get('range') || '1h';
+    if (!RANGE_PRESETS[range]) {
+      sendJson(res, 400, { error: 'invalid range' });
+      return;
+    }
+    try {
+      sendJson(res, 200, await getDashboards(range));
+    } catch (err) {
+      console.error(`dashboards: ${err.message}`);
+      sendJson(res, 503, { error: 'dashboards unavailable', generatedAt: new Date().toISOString() });
     }
     return;
   }

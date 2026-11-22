@@ -4,10 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Homelab en vivo · Daniel Barroso</title>
-  <meta name="description" content="Observatorio en vivo del homelab de Daniel Barroso: edge, cluster Kubernetes, GitOps, workloads, backups y observabilidad.">
+  <meta name="description" content="El homelab de Daniel Barroso explicado desde cero y en vivo: qué es cada pieza, qué hace cada aplicación y dashboards reales del cluster.">
   <meta name="theme-color" content="#070b0c">
   <meta property="og:title" content="Homelab en vivo · Daniel Barroso">
-  <meta property="og:description" content="Edge, Kubernetes, GitOps, backups y observabilidad en tiempo real.">
+  <meta property="og:description" content="Tres Raspberry Pi, Kubernetes, GitOps y dashboards reales, explicado para cualquiera.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://dbarroso.dev/live">
   <meta name="twitter:card" content="summary">
@@ -19,6 +19,8 @@
   <div class="bg-glow" aria-hidden="true"></div>
   <div class="scanlines" aria-hidden="true"></div>
 
+  <a class="skip-link" href="#resumen" data-i18n="a11y.skip">Saltar al contenido</a>
+
   <header class="topbar">
     <a class="brand" href="https://dbarroso.dev" aria-label="Volver al CV">
       <span class="brand-mark">◢</span>
@@ -26,13 +28,22 @@
       <span class="dim brand-colon">:~$</span>
       <span class="brand-cmd">./observatory --live</span>
     </a>
+
+    <nav class="nav" aria-label="Secciones">
+      <a href="#resumen" data-i18n="nav.overview">Resumen</a>
+      <a href="#como-funciona" data-i18n="nav.how">Cómo funciona</a>
+      <a href="#workloads" data-i18n="nav.workloads">Aplicaciones</a>
+      <a href="#dashboards" data-i18n="nav.dashboards">Dashboards</a>
+      <a href="#preguntas" data-i18n="nav.faq">Preguntas</a>
+    </nav>
+
     <div class="live-state" id="live-state">
       <span class="live-dot" id="live-dot"></span>
       <span id="live-label">LIVE</span>
       <span class="dim" id="last-update">--</span>
     </div>
+
     <div class="top-actions">
-      <button id="recruiter-btn" class="btn tiny" aria-pressed="false">modo reclutador</button>
       <div class="lang" role="group" aria-label="Idioma / Language">
         <button class="lang-btn" data-lang="es">ES</button>
         <span class="dim">/</span>
@@ -47,31 +58,37 @@
       <span data-i18n="degraded.text">Algunas capas no responden; se muestra la última lectura conocida.</span>
     </div>
 
-    <section class="hero">
+    <section class="hero" id="resumen">
       <div class="hero-main">
         <p class="eyebrow"><span class="prompt">$</span> <span data-i18n="hero.eyebrow">cat /proc/homelab</span><span class="caret"></span></p>
-        <h1><span data-i18n="hero.title1">Todo el stack,</span><br><span class="accent" data-i18n="hero.title2">en vivo.</span></h1>
-        <p class="lede" data-i18n="hero.lede">Tres Raspberry Pi, Kubernetes, GitOps, backups y observabilidad. Esto no es una captura: es el estado real del homelab mientras lo miras.</p>
+        <h1>
+          <span data-i18n="hero.title1">Tres ordenadores pequeños.</span><br>
+          <span class="accent" data-i18n="hero.title2">Todo esto, en vivo.</span>
+        </h1>
+        <p class="lede" data-i18n="hero.lede">Esta página la sirve un cluster de Kubernetes montado en casa con tres Raspberry Pi. No es una maqueta: los datos salen del sistema real mientras lo miras.</p>
+        <p class="hero-simple" data-i18n="hero.simple">No hace falta saber de servidores. Cada bloque trae una explicación sencilla y, si quieres más, un detalle técnico que puedes desplegar.</p>
         <div class="hero-actions">
-          <button id="journey-btn" class="btn primary"><span class="play">▶</span> <span data-i18n="hero.journey">simular petición</span></button>
-          <a href="#layers" class="btn ghost" data-i18n="hero.layers">explorar capas ↓</a>
+          <button id="journey-btn" class="btn primary"><span class="play">▶</span> <span data-i18n="hero.journey">Recorrer una visita</span></button>
+          <a href="#dashboards" class="btn ghost" data-i18n="hero.dashboards">Ver dashboards</a>
+          <a href="#workloads" class="btn ghost" data-i18n="hero.pieces">Entender las piezas</a>
         </div>
       </div>
+
       <div class="hero-stats" id="hero-stats">
         <div class="stat">
           <span class="stat-k" data-i18n="stat.nodes">nodos</span>
           <strong id="stat-nodes">--</strong>
-          <span class="stat-sub" data-i18n="stat.nodesSub">Ready</span>
+          <span class="stat-sub" data-i18n="stat.nodesSub">encendidos</span>
         </div>
         <div class="stat">
           <span class="stat-k" data-i18n="stat.apps">apps</span>
           <strong id="stat-apps">--</strong>
-          <span class="stat-sub" data-i18n="stat.appsSub">Healthy</span>
+          <span class="stat-sub" data-i18n="stat.appsSub">sanas</span>
         </div>
         <div class="stat">
           <span class="stat-k" data-i18n="stat.pods">pods</span>
           <strong id="stat-pods">--</strong>
-          <span class="stat-sub" data-i18n="stat.podsSub">Running</span>
+          <span class="stat-sub" data-i18n="stat.podsSub">en marcha</span>
         </div>
         <div class="stat">
           <span class="stat-k" data-i18n="stat.backup">backup</span>
@@ -83,15 +100,63 @@
           <strong id="stat-alerts">--</strong>
           <span class="stat-sub" data-i18n="stat.alertsSub">activas</span>
         </div>
+        <div class="stat">
+          <span class="stat-k" data-i18n="stat.uptime">uptime</span>
+          <strong id="stat-uptime">--</strong>
+          <span class="stat-sub" data-i18n="stat.uptimeSub">del nodo más joven</span>
+        </div>
       </div>
     </section>
 
-    <section class="panel topo-panel" aria-label="Topología del homelab">
+    <section class="concept-strip" aria-label="Cuatro ideas para entender el homelab">
+      <article class="concept">
+        <span class="concept-num">01</span>
+        <h2 data-i18n="concept.hard.title">Tres ordenadores</h2>
+        <p data-i18n="concept.hard.text">Son tres Raspberry Pi, del tamaño de una tarjeta de crédito. Están siempre encendidas en casa y se reparten el trabajo.</p>
+        <details><summary data-i18n="ui.technical">Detalle técnico</summary><p data-i18n="concept.hard.tech">k3s v1.37.2 sobre Raspberry Pi OS Lite (Trixie), ARM64. cluster0 es el plano de control; cluster1 y cluster2 son workers. cluster2 tiene 2 GB y un taint para cargas ligeras.</p></details>
+      </article>
+      <article class="concept">
+        <span class="concept-num">02</span>
+        <h2 data-i18n="concept.kube.title">Un director de orquesta</h2>
+        <p data-i18n="concept.kube.text">Kubernetes decide en qué ordenador vive cada aplicación, la reinicia si se cae y reparte las copias para que siempre haya alguien atendiendo.</p>
+        <details><summary data-i18n="ui.technical">Detalle técnico</summary><p data-i18n="concept.kube.tech">k3s con flannel, Traefik como Ingress, ServiceLB y local-path. Cada app corre en pods; los Deployments mantienen el número de réplicas deseado.</p></details>
+      </article>
+      <article class="concept">
+        <span class="concept-num">03</span>
+        <h2 data-i18n="concept.git.title">Todo está en un repositorio</h2>
+        <p data-i18n="concept.git.text">La configuración vive en Git, no en las máquinas. Si alguien cambia algo a mano, Argo CD lo devuelve a como está escrito en el repositorio.</p>
+        <details><summary data-i18n="ui.technical">Detalle técnico</summary><p data-i18n="concept.git.tech">GitOps con Argo CD v3.6.1: app-of-apps, selfHeal y prune. Las credenciales van cifradas con Sealed Secrets; nada sensible se commitea en claro.</p></details>
+      </article>
+      <article class="concept">
+        <span class="concept-num">04</span>
+        <h2 data-i18n="concept.measure.title">Todo se mide</h2>
+        <p data-i18n="concept.measure.text">Un sistema apunta cada 30 segundos cómo va todo: temperatura, memoria, visitas, errores. Si algo se sale de lo normal, avisa al móvil.</p>
+        <details><summary data-i18n="ui.technical">Detalle técnico</summary><p data-i18n="concept.measure.tech">Prometheus v3.5.0 scrapea node-exporter, kubelet, cAdvisor, kube-state-metrics y Traefik. Alertmanager evalúa 7 reglas y notifica por ntfy.sh.</p></details>
+      </article>
+    </section>
+
+    <section id="como-funciona" class="panel topo-panel">
       <div class="panel-bar">
         <span class="dots"><i></i><i></i><i></i></span>
         <span class="panel-file">topology.svg</span>
         <span class="panel-note" id="topo-note" data-i18n="topo.note">datos en vivo · se actualiza cada 15 s</span>
       </div>
+
+      <div class="topo-head">
+        <div>
+          <h2 data-i18n="topo.title">Qué pasa cuando abres esta página</h2>
+          <p class="section-sub" data-i18n="topo.intro">Tu petición pasa por seis sitios hasta volver convertida en la página que ves. Puedes recorrerla paso a paso o pulsar cualquier pieza del dibujo.</p>
+        </div>
+        <div class="journey-controls" role="group" aria-label="Recorrido">
+          <button id="journey-prev" class="btn tiny" aria-label="Paso anterior">←</button>
+          <button id="journey-play" class="btn tiny" aria-label="Reproducir recorrido">▶</button>
+          <button id="journey-next" class="btn tiny" aria-label="Paso siguiente">→</button>
+          <span id="journey-step" class="journey-step">1/5</span>
+        </div>
+      </div>
+
+      <div id="journey-text" class="journey-text" aria-live="polite"></div>
+
       <div class="topo-scroll">
         <svg id="topology" viewBox="0 0 1100 430" role="img" aria-label="Topología: navegador, Cloudflare, Traefik, cluster de tres nodos, R2 y observabilidad">
           <defs>
@@ -126,44 +191,44 @@
             <text x="638" y="340" class="link-label">scrape</text>
           </g>
 
-          <g class="topo-node tone-ok" id="topo-browser" transform="translate(28,180)">
+          <g class="topo-node tone-ok clickable" id="topo-browser" data-node="browser" tabindex="0" role="button" aria-label="Tu navegador" transform="translate(28,180)">
             <rect width="84" height="70" rx="10"/>
             <text x="42" y="30" text-anchor="middle" class="node-title">you</text>
             <text x="42" y="49" text-anchor="middle" class="node-sub">browser</text>
           </g>
 
-          <g class="topo-node tone-ok" id="topo-edge" transform="translate(210,170)">
+          <g class="topo-node tone-ok clickable" id="topo-edge" data-node="edge" tabindex="0" role="button" aria-label="Cloudflare" transform="translate(210,170)">
             <rect width="150" height="90" rx="12"/>
             <text x="75" y="32" text-anchor="middle" class="node-title">Cloudflare</text>
             <text x="75" y="52" text-anchor="middle" class="node-sub">edge · TLS · WAF</text>
             <text x="75" y="72" text-anchor="middle" class="node-sub" id="topo-edge-sub">tunnel --</text>
           </g>
 
-          <g class="topo-node tone-ok" id="topo-traefik" transform="translate(430,175)">
+          <g class="topo-node tone-ok clickable" id="topo-traefik" data-node="traefik" tabindex="0" role="button" aria-label="Traefik" transform="translate(430,175)">
             <rect width="130" height="80" rx="12"/>
             <text x="65" y="32" text-anchor="middle" class="node-title">Traefik</text>
             <text x="65" y="52" text-anchor="middle" class="node-sub">ingress · routes</text>
             <text x="65" y="70" text-anchor="middle" class="node-sub" id="topo-traefik-sub">/ → portfolio</text>
           </g>
 
-          <g class="topo-cluster" id="topo-cluster">
+          <g class="topo-cluster clickable" id="topo-cluster" data-node="cluster" tabindex="0" role="button" aria-label="Cluster de Kubernetes">
             <rect class="cluster-box" x="640" y="90" width="400" height="220" rx="16"/>
             <text x="660" y="116" class="cluster-title">k3s cluster</text>
             <text x="1020" y="116" text-anchor="end" class="cluster-sub" id="topo-cluster-sub">3 nodes</text>
 
-            <g class="topo-node tone-ok" id="topo-node0" transform="translate(660,132)">
+            <g class="topo-node tone-ok" id="topo-node0" data-node="node0" tabindex="0" role="button" aria-label="cluster0" transform="translate(660,132)">
               <rect width="110" height="64" rx="9"/>
               <text x="55" y="26" text-anchor="middle" class="node-title" id="topo-node0-name">cluster0</text>
               <text x="55" y="45" text-anchor="middle" class="node-sub">control-plane</text>
               <circle cx="96" cy="16" r="4" class="status-dot"/>
             </g>
-            <g class="topo-node tone-ok" id="topo-node1" transform="translate(790,132)">
+            <g class="topo-node tone-ok" id="topo-node1" data-node="node1" tabindex="0" role="button" aria-label="cluster1" transform="translate(790,132)">
               <rect width="110" height="64" rx="9"/>
               <text x="55" y="26" text-anchor="middle" class="node-title" id="topo-node1-name">cluster1</text>
               <text x="55" y="45" text-anchor="middle" class="node-sub">worker</text>
               <circle cx="96" cy="16" r="4" class="status-dot"/>
             </g>
-            <g class="topo-node tone-ok" id="topo-node2" transform="translate(920,132)">
+            <g class="topo-node tone-ok" id="topo-node2" data-node="node2" tabindex="0" role="button" aria-label="cluster2" transform="translate(920,132)">
               <rect width="110" height="64" rx="9"/>
               <text x="55" y="26" text-anchor="middle" class="node-title" id="topo-node2-name">cluster2</text>
               <text x="55" y="45" text-anchor="middle" class="node-sub">worker</text>
@@ -175,13 +240,13 @@
             <text x="1020" y="272" text-anchor="end" class="cluster-sub" id="topo-workloads-sub">-- apps</text>
           </g>
 
-          <g class="topo-node tone-ok" id="topo-r2" transform="translate(870,352)">
+          <g class="topo-node tone-ok clickable" id="topo-r2" data-node="r2" tabindex="0" role="button" aria-label="Cloudflare R2" transform="translate(870,352)">
             <rect width="130" height="56" rx="10"/>
             <text x="65" y="24" text-anchor="middle" class="node-title">R2</text>
             <text x="65" y="43" text-anchor="middle" class="node-sub" id="topo-r2-sub">backup --</text>
           </g>
 
-          <g class="topo-node tone-ok" id="topo-obs" transform="translate(430,345)">
+          <g class="topo-node tone-ok clickable" id="topo-obs" data-node="obs" tabindex="0" role="button" aria-label="Observabilidad" transform="translate(430,345)">
             <rect width="190" height="58" rx="10"/>
             <text x="95" y="22" text-anchor="middle" class="node-title">Prometheus</text>
             <text x="95" y="42" text-anchor="middle" class="node-sub" id="topo-obs-sub">Alertmanager · targets --/--</text>
@@ -191,9 +256,11 @@
           <path id="journey-path" d="M 70 215 L 285 215 L 495 215 L 715 164" fill="none" stroke="none"/>
         </svg>
       </div>
+
+      <p class="topo-hint" data-i18n="topo.hint">Pulsa cualquier pieza para ver qué es, qué hace y sus datos en vivo.</p>
     </section>
 
-    <section id="layers" class="layers">
+    <section class="layers" id="capas">
       <article class="layer panel" id="layer-edge">
         <div class="panel-bar">
           <span class="dots"><i></i><i></i><i></i></span>
@@ -201,14 +268,15 @@
           <span class="chip" id="edge-chip">--</span>
         </div>
         <div class="layer-body">
-          <h2 data-i18n="layer.edge.title">Edge</h2>
+          <h2 data-i18n="layer.edge.title">La puerta de entrada</h2>
           <div class="metric-grid">
             <div class="metric"><span class="k" data-i18n="layer.edge.tunnel">túnel</span><strong id="edge-tunnel">--</strong></div>
-            <div class="metric"><span class="k" data-i18n="layer.edge.probe">latencia</span><strong id="edge-probe">--</strong></div>
-            <div class="metric"><span class="k" data-i18n="layer.edge.tls">TLS</span><strong>Cloudflare</strong></div>
-            <div class="metric"><span class="k" data-i18n="layer.edge.host">host</span><strong>dbarroso.dev</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.edge.probe">ida y vuelta</span><strong id="edge-probe">--</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.edge.tls">cifrado</span><strong>Cloudflare</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.edge.host">dominio</span><strong>dbarroso.dev</strong></div>
           </div>
-          <p class="explain" data-i18n="explain.edge">Cloudflare termina el TLS y filtra el tráfico. El cluster no abre puertos: un túnel saliente publica los servicios.</p>
+          <p class="explain" data-i18n="layer.edge.simple">Cuando alguien entra, Cloudflare es lo primero que le atiende: comprueba que la conexión es segura y la pasa a casa por un túnel que sale desde el propio cluster. No hay ningún puerto abierto en el router.</p>
+          <details><summary data-i18n="ui.technical">Detalle técnico</summary><p data-i18n="layer.edge.tech">Cloudflare termina TLS, aplica WAF y Access en los paneles. cloudflared 2026.11.1 mantiene dos conexiones QUIC salientes y entrega a traefik.kube-system:80; el enrutado sigue en los Ingress.</p></details>
         </div>
       </article>
 
@@ -219,7 +287,7 @@
           <span class="chip" id="data-chip">--</span>
         </div>
         <div class="layer-body">
-          <h2 data-i18n="layer.data.title">Datos</h2>
+          <h2 data-i18n="layer.data.title">La copia de seguridad</h2>
           <div class="backup-hero">
             <strong id="backup-age">--</strong>
             <span class="k" data-i18n="layer.data.last">desde el último backup</span>
@@ -227,10 +295,11 @@
           <div class="metric-grid">
             <div class="metric"><span class="k" data-i18n="layer.data.size">tamaño</span><strong id="backup-size">--</strong></div>
             <div class="metric"><span class="k" data-i18n="layer.data.schedule">horario</span><strong id="backup-schedule">--</strong></div>
-            <div class="metric"><span class="k" data-i18n="layer.data.r2">R2</span><strong id="backup-r2">--</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.data.r2">copia fuera</span><strong id="backup-r2">--</strong></div>
             <div class="metric"><span class="k" data-i18n="layer.data.retention">retención</span><strong>14d</strong></div>
           </div>
-          <p class="explain" data-i18n="explain.data">Copia consistente del datastore SQLite de k3s, el token y las CA. Se guarda en local y se replica a Cloudflare R2 cada día.</p>
+          <p class="explain" data-i18n="layer.data.simple">Cada noche, a las 03:15, se guarda una copia de la memoria del cluster y se sube a Cloudflare R2. Si la tarjeta SD de la Raspberry se estropea, se puede volver a montar todo.</p>
+          <details><summary data-i18n="ui.technical">Detalle técnico</summary><p data-i18n="layer.data.tech">k3s usa SQLite/kine, así que no hay etcd. Un timer systemd copia state.db con la API .backup de SQLite, más token, tls, cred y manifests; 4 copias locales y 14 días en R2 con rclone.</p></details>
         </div>
       </article>
 
@@ -241,9 +310,10 @@
           <span class="panel-note" id="cluster-note">--</span>
         </div>
         <div class="layer-body">
-          <h2 data-i18n="layer.cluster.title">Cluster</h2>
+          <h2 data-i18n="layer.cluster.title">Los tres ordenadores</h2>
+          <p class="explain" data-i18n="layer.cluster.simple">Kubernetes reparte las aplicaciones entre las tres Raspberry. Si una se pone al 100 % o se reinicia, las copias de las apps pueden seguir atendiendo desde las otras.</p>
           <div class="node-grid" id="node-grid"></div>
-          <p class="explain" data-i18n="explain.cluster">Tres Raspberry Pi 4 con k3s: un control-plane y dos workers. cluster2 es el nodo ligero de 2 GB y solo recibe cargas pequeñas.</p>
+          <details><summary data-i18n="ui.technical">Detalle técnico</summary><p data-i18n="layer.cluster.tech">k3s v1.37.2, un server y dos agents. cluster2 (2 GB) lleva el taint homelab.io/role=light:NoSchedule; solo toleran ese taint las cargas pensadas para él, como node-exporter y el portfolio.</p></details>
         </div>
       </article>
 
@@ -254,9 +324,10 @@
           <span class="panel-note" id="gitops-note">--</span>
         </div>
         <div class="layer-body">
-          <h2 data-i18n="layer.gitops.title">GitOps</h2>
+          <h2 data-i18n="layer.gitops.title">El repositorio manda</h2>
+          <p class="explain" data-i18n="layer.gitops.simple">Cada aplicación está descrita en un repositorio de Git. Argo CD compara lo que dice Git con lo que hay de verdad en el cluster y corrige la diferencia. Así no hay cambios a mano que se pierdan.</p>
           <div class="app-grid" id="app-grid"></div>
-          <p class="explain" data-i18n="explain.gitops">Argo CD compara Git con el cluster y corrige cualquier deriva automáticamente. Si el estado no coincide con el repo, vuelve a él sin intervención.</p>
+          <details><summary data-i18n="ui.technical">Detalle técnico</summary><p data-i18n="layer.gitops.tech">Argo CD v3.6.1 con app-of-apps (homelab-root), automated + prune + selfHeal. Image Updater cambia el tag del portfolio cada ~2 min; el app-of-apps ignora ese campo para no revertirlo.</p></details>
         </div>
       </article>
 
@@ -267,9 +338,10 @@
           <span class="chip" id="workloads-chip">--</span>
         </div>
         <div class="layer-body">
-          <h2 data-i18n="layer.workloads.title">Workloads</h2>
+          <h2 data-i18n="layer.workloads.title">Las aplicaciones</h2>
           <ul class="workload-list" id="workload-list"></ul>
-          <p class="explain" data-i18n="explain.workloads">Aplicaciones reales sirviendo tráfico: portfolio, AdGuard, Homepage, Grafana, Prometheus y el propio observatorio.</p>
+          <p class="explain" data-i18n="layer.workloads.simple">Cada fila es una aplicación que está haciendo algo ahora mismo: servir el CV, filtrar publicidad, guardar métricas o enseñarte esta página.</p>
+          <a class="link-more" href="#workloads" data-i18n="layer.workloads.more">Ver qué hace cada una →</a>
         </div>
       </article>
 
@@ -280,17 +352,69 @@
           <span class="chip" id="obs-chip">--</span>
         </div>
         <div class="layer-body">
-          <h2 data-i18n="layer.obs.title">Observabilidad</h2>
+          <h2 data-i18n="layer.obs.title">Los instrumentos</h2>
           <div class="metric-grid">
-            <div class="metric"><span class="k" data-i18n="layer.obs.targets">targets</span><strong id="obs-targets">--</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.obs.targets">objetivos</span><strong id="obs-targets">--</strong></div>
             <div class="metric"><span class="k" data-i18n="layer.obs.alerts">alertas</span><strong id="obs-alerts">--</strong></div>
             <div class="metric"><span class="k" data-i18n="layer.obs.rules">reglas</span><strong>7</strong></div>
-            <div class="metric"><span class="k" data-i18n="layer.obs.notify">notificaciones</span><strong data-i18n="layer.obs.pending">pendientes</strong></div>
+            <div class="metric"><span class="k" data-i18n="layer.obs.notify">avisos</span><strong data-i18n="layer.obs.notifyOk">ntfy</strong></div>
           </div>
           <ul class="alert-list" id="alert-list"></ul>
-          <p class="explain" data-i18n="explain.obs">Prometheus mide cada 30 segundos; Alertmanager agrupa las alertas y las deja listas para conectar a email o mensajería.</p>
+          <p class="explain" data-i18n="layer.obs.simple">Prometheus mide cada 30 segundos. Si una regla se cumple —por ejemplo, un nodo lleva 5 minutos sin responder— Alertmanager manda un aviso al móvil por ntfy.</p>
+          <details><summary data-i18n="ui.technical">Detalle técnico</summary><p data-i18n="layer.obs.tech">Prometheus v3.5.0 (7 días / 3 GB), Alertmanager v0.35.0 con receiver ntfy y topic en SealedSecret, 7 reglas. Grafana sirve cinco dashboards provisionados desde Git.</p></details>
         </div>
       </article>
+    </section>
+
+    <section id="workloads" class="panel workloads-panel">
+      <div class="section-head">
+        <div>
+          <h2 data-i18n="workloads.title">Qué hace cada aplicación</h2>
+          <p class="section-sub" data-i18n="workloads.intro">Estas son las piezas que están corriendo ahora mismo. Pulsa una para ver su explicación sencilla, sus datos y su detalle técnico.</p>
+        </div>
+        <div class="workload-tools">
+          <label class="sr-only" for="workload-search" data-i18n="workloads.searchLabel">Buscar aplicación</label>
+          <input id="workload-search" type="search" autocomplete="off" data-i18n-placeholder="workloads.search" placeholder="Buscar…">
+          <button id="workload-toggle" class="btn tiny" aria-pressed="false"></button>
+        </div>
+      </div>
+      <p id="workload-count" class="section-meta"></p>
+      <div id="workload-grid" class="workload-grid"></div>
+    </section>
+
+    <section id="dashboards" class="panel dashboards-panel">
+      <div class="section-head">
+        <div>
+          <h2 data-i18n="dash.title">Los dashboards reales</h2>
+          <p class="section-sub" data-i18n="dash.intro">Lo mismo que ve el dueño del homelab en Grafana, pero en versión curada y pública. Elige una pestaña y un rango; pasa el ratón por las gráficas.</p>
+        </div>
+        <div class="range" role="group" aria-label="Rango temporal">
+          <button class="range-btn" data-range="15m">15m</button>
+          <button class="range-btn active" data-range="1h">1h</button>
+          <button class="range-btn" data-range="6h">6h</button>
+        </div>
+      </div>
+
+      <div class="dash-tabs" role="tablist" aria-label="Dashboards">
+        <button class="tab-btn active" data-tab="cluster" role="tab" aria-selected="true" data-i18n="dash.tab.cluster">Cluster</button>
+        <button class="tab-btn" data-tab="web" role="tab" aria-selected="false" data-i18n="dash.tab.web">Web</button>
+        <button class="tab-btn" data-tab="api" role="tab" aria-selected="false" data-i18n="dash.tab.api">API interna</button>
+        <button class="tab-btn" data-tab="pods" role="tab" aria-selected="false" data-i18n="dash.tab.pods">Consumo</button>
+      </div>
+
+      <p id="dash-explain" class="dash-explain"></p>
+      <p id="dash-meta" class="dash-meta"></p>
+      <div id="dash-body" class="dash-body" aria-live="polite"></div>
+
+      <details class="dash-tech">
+        <summary data-i18n="ui.technical">Detalle técnico</summary>
+        <p data-i18n="dash.tech">Todo sale de Prometheus v3.5.0 en vivo y con consultas cerradas: el BFF no acepta PromQL del navegador. Los datos se cachean 15 s (estado) y 60 s (dashboards). El panel completo de Grafana sigue siendo privado.</p>
+      </details>
+    </section>
+
+    <section id="preguntas" class="panel faq-panel">
+      <h2 data-i18n="faq.title">Preguntas frecuentes</h2>
+      <div id="faq-list" class="faq-list"></div>
     </section>
 
     <section class="panel timeline-panel">
@@ -310,6 +434,20 @@
       <span id="footer-rev" class="dim">rev --</span>
     </footer>
   </main>
+
+  <div id="drawer" class="drawer" hidden>
+    <div class="drawer-backdrop" data-close="1"></div>
+    <aside class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+      <header class="drawer-head">
+        <div>
+          <span id="drawer-kind" class="drawer-kind"></span>
+          <h2 id="drawer-title">--</h2>
+        </div>
+        <button id="drawer-close" class="drawer-close" aria-label="Cerrar">×</button>
+      </header>
+      <div id="drawer-body" class="drawer-body"></div>
+    </aside>
+  </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="/live/app.js"></script>
