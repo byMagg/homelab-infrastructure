@@ -34,7 +34,9 @@
     {
       "customType": "regex",
       "description": "Tags de imagen en los manifiestos de Kubernetes",
-      "fileMatch": ["^kubernetes/apps/.*\\.yaml$"],
+      "managerFilePatterns": [
+        "/^kubernetes/apps/.*\\.yaml$/"
+      ],
       "matchStrings": [
         "image:\\s+(?<depName>[^\\s:]+(?:/[^\\s:]+)*):(?<currentValue>[^\\s]+)"
       ],
@@ -43,7 +45,9 @@
     {
       "customType": "regex",
       "description": "Versión fijada de k3s en group_vars",
-      "fileMatch": ["^ansible/inventory/production/group_vars/all\\.yml$"],
+      "managerFilePatterns": [
+        "/^ansible/inventory/production/group_vars/all\\.yml$/"
+      ],
       "matchStrings": ["k3s_version:\\s*[\"']?(?<currentValue>v[^\\s\"']+)"],
       "depNameTemplate": "k3s-io/k3s",
       "datasourceTemplate": "github-releases",
