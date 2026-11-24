@@ -2,7 +2,6 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "timezone": "Europe/Madrid",
-  "schedule": ["before 8am on monday"],
   "labels": ["dependencies"],
   "automerge": false,
   "platformAutomerge": false,
@@ -14,6 +13,10 @@
     "ansible/collections/**"
   ],
   "packageRules": [
+    {
+      "matchManagers": ["github-actions"],
+      "enabled": false
+    },
     {
       "matchUpdateTypes": ["major"],
       "addLabels": ["major"]

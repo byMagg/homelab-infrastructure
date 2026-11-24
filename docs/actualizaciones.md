@@ -269,7 +269,6 @@ hace el rollout en ~3 min. No hay auto-merge.
   Prometheus, Grafana, Alertmanager, kube-state-metrics, node-exporter,
   sealed-secrets y el `node:22-alpine` del observatorio).
 - `k3s_version` en `ansible/inventory/production/group_vars/all.yml`.
-- Las acciones de `.github/workflows/`.
 
 ### Qué no cubre (a propósito)
 
@@ -278,6 +277,7 @@ hace el rollout en ~3 min. No hay auto-merge.
 | `kubernetes/apps/portfolio/**` | Lo gobierna Image Updater (ver abajo) |
 | `kubernetes/apps/image-updater/**` | La imagen y los CRD son una unidad; se suben juntos a mano |
 | Versión de Argo CD | Solo está en la documentación; se instala con el manifiesto upstream |
+| Acciones de GitHub | Con `GITHUB_TOKEN` no se pueden modificar workflows; son dos y se suben a mano |
 | Ejecutar el upgrade de k3s | Renovate solo cambia `group_vars`; el procedimiento es la sección 2 |
 
 ### Activación
@@ -287,11 +287,17 @@ hace el rollout en ~3 min. No hay auto-merge.
    - **`GITHUB_TOKEN`** (por defecto): activa en *Settings → Actions → General*
      la opción *Allow GitHub Actions to create and approve pull requests*.
    - **PAT** (recomendado si quieres que los PRs disparen CI): crea un
-     fine-grained token con `Contents: read/write` y `Pull requests:
-     read/write`, y guárdalo como secret `RENOVATE_TOKEN`. El workflow lo usa
-     si existe.
-3. *Actions → renovate → Run workflow*. El primer PR debería ser, por ejemplo,
-   `cloudflare/cloudflared 2026.11.1 → 2026.12.x`.
+     fine-grained token con `Contents: read/write`, `Pull requests: read/write`
+     e `Issues: read/write`, y guárdalo como secret `RENOVATE_TOKEN`. El
+     workflow lo usa si existe.
+3. *Actions → renovate → Run workflow*. Entre los PRs debería aparecer, por
+   ejemplo, `cloudflare/cloudflared 2026.11.1 → 2026.12.x`; si no está, mira el
+   issue *Dependency Dashboard*.
+
+La cadencia la marca el cron del workflow, no un `schedule` de Renovate: así
+`workflow_dispatch` funciona cualquier día. Si algún día instalas la GitHub App
+en lugar del workflow, añade `"schedule": ["before 8am on monday"]` al
+`renovate.json` para que no abra PRs a diario.
 
 Con `GITHUB_TOKEN`, los PRs que abre Renovate **no disparan otros workflows**
 (es una restricción de GitHub para evitar recursión): el lint de Ansible no
