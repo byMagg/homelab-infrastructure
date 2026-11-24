@@ -23,7 +23,7 @@ spec:
         fsGroup: 65534
       containers:
         - name: observatory
-          image: node:22-alpine
+          image: node:26-alpine
           command: ["node", "/app/server.js"]
           env:
             - name: PORT
