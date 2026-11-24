@@ -23,7 +23,7 @@ spec:
         kubernetes.io/hostname: cluster0
       containers:
         - name: adguard
-          image: adguard/adguardhome:v0.107.80
+          image: adguard/adguardhome:v1.0.0
           ports:
             - name: dns-udp
               containerPort: 53
