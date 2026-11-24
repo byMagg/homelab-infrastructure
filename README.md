@@ -119,6 +119,7 @@ docs/          Arquitectura, ADRs, runbooks, postmortems
 |---|---|
 | [`docs/ansible-guia.md`](docs/ansible-guia.md) | Empezar con Ansible: modelo mental, mapa del repo y comandos seguros |
 | [`docs/despliegue.md`](docs/despliegue.md) | Cómo se automatiza el despliegue (Ansible + Argo CD) y qué queda manual |
+| [`docs/actualizaciones.md`](docs/actualizaciones.md) | Qué se actualiza solo, cuándo, y procedimiento de upgrade de k3s |
 | [`docs/fase-7.md`](docs/fase-7.md) | Backup y recuperación: SQLite, R2, restauración y drill |
 | [`docs/observatorio.md`](docs/observatorio.md) | Observatorio público: capas, API, seguridad y despliegue |
 | [`docs/adr-001-ansible-en-lugar-de-terraform.md`](docs/adr-001-ansible-en-lugar-de-terraform.md) | Por qué Ansible y no Terraform |

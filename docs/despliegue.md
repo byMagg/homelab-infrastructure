@@ -194,6 +194,10 @@ webhook y sin cron de GitHub:
 
 El detalle y la verificación están en [`fase-6.md`](fase-6.md).
 
+El resto de actualizaciones (parches del SO, k3s, Argo CD y las imágenes que no
+son del portfolio) es manual y está en
+[`actualizaciones.md`](actualizaciones.md).
+
 ## Huecos conocidos
 
 | # | Hueco | Estado |
