@@ -217,7 +217,11 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 - Automatización: la Application raíz `homelab-root` (app-of-apps) gestiona
   `kubernetes/argocd/`, así que añadir una app es solo commitear su
   `*-app.yaml`. `.github/workflows/ansible.yml` linta Ansible. El tag del
-  portfolio lo actualiza `argocd-image-updater` en el cluster.
+  portfolio lo actualiza `argocd-image-updater` en el cluster. El resto de
+  imágenes y `k3s_version` los vigila Renovate (`renovate.json` +
+  `.github/workflows/renovate.yml`, lunes 04:00 UTC): abre PRs, **sin
+  auto-merge**; el portfolio y `image-updater/` están excluidos a propósito.
+  Ver `docs/actualizaciones.md`.
 - Portfolio: `kubernetes/apps/portfolio` (namespace `portfolio`, 3 réplicas de
   `nginx-unprivileged`). La imagen la construye el repo del sitio
   (`dbarrosourr/dbarrosourr.github.io`) en GitHub Actions y se publica en

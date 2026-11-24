@@ -1,0 +1,50 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Europe/Madrid",
+  "schedule": ["before 8am on monday"],
+  "labels": ["dependencies"],
+  "automerge": false,
+  "platformAutomerge": false,
+  "prConcurrentLimit": 3,
+  "prHourlyLimit": 2,
+  "ignorePaths": [
+    "kubernetes/apps/portfolio/**",
+    "kubernetes/apps/image-updater/**",
+    "ansible/collections/**"
+  ],
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["major"]
+    },
+    {
+      "matchDatasources": ["docker"],
+      "addLabels": ["arm64"]
+    },
+    {
+      "matchPackageNames": ["k3s-io/k3s"],
+      "addLabels": ["k3s"]
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Tags de imagen en los manifiestos de Kubernetes",
+      "fileMatch": ["^kubernetes/apps/.*\\.yaml$"],
+      "matchStrings": [
+        "image:\\s+(?<depName>[^\\s:]+(?:/[^\\s:]+)*):(?<currentValue>[^\\s]+)"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Versión fijada de k3s en group_vars",
+      "fileMatch": ["^ansible/inventory/production/group_vars/all\\.yml$"],
+      "matchStrings": ["k3s_version:\\s*[\"']?(?<currentValue>v[^\\s\"']+)"],
+      "depNameTemplate": "k3s-io/k3s",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    }
+  ]
+}
