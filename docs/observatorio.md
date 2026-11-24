@@ -77,7 +77,10 @@ hace falta reiniciar nada a mano.
 
 La topología SVG conecta navegador → Cloudflare → Traefik → cluster → R2 y
 Prometheus. El **recorrido guiado** resalta cada pieza y explica qué ocurre; al
-pulsar cualquier nodo se abre un cajón con su explicación y datos en vivo.
+pulsar cualquier nodo se abre un cajón con su explicación y datos en vivo. En
+pantallas de hasta 980 px el mismo SVG se recoloca en vertical (`viewBox`
+420x720, cluster con los tres nodos en fila) para que el recorrido no saque
+piezas fuera de pantalla; no hay scroll lateral ni marcado duplicado.
 
 ## Explicaciones, idiomas y enlaces directos
 

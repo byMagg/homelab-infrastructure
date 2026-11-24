@@ -277,6 +277,19 @@ main { position: relative; z-index: 1; }
 .journey-text .step-k { display: block; color: var(--green); font-size: 9px; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 4px; }
 .topo-scroll { overflow-x: auto; padding: 14px 18px 8px; }
 #topology { width: 100%; min-width: 900px; height: auto; display: block; }
+/* En móvil/tablet la misma topología se reordena en vertical: sin scroll
+   lateral y con el recorrido siempre a la vista. */
+#topology .topo-grid-v { display: none; }
+#topology.is-vertical { min-width: 0; max-width: 520px; margin: 0 auto; }
+#topology.is-vertical .topo-grid-h { display: none; }
+#topology.is-vertical .topo-grid-v { display: block; }
+/* En vertical el dibujo se escala menos, así que sube un punto la tipografía. */
+#topology.is-vertical .topo-node .node-title { font-size: 17px; }
+#topology.is-vertical .topo-node .node-sub { font-size: 10px; }
+#topology.is-vertical #topo-cluster .node-title { font-size: 15px; }
+#topology.is-vertical .cluster-title { font-size: 12px; }
+#topology.is-vertical .cluster-sub { font-size: 10px; }
+#topology.is-vertical .link-label { font-size: 10px; }
 .topo-grid path { stroke: rgba(0,255,163,.05); stroke-width: 1; }
 .link {
   stroke: #274345; stroke-width: 1.5; fill: none;
@@ -721,6 +734,10 @@ main { position: relative; z-index: 1; }
   .layers { grid-template-columns: 1fr; }
   .layer.wide { grid-column: auto; }
   .topo-head, .section-head { flex-direction: column; align-items: flex-start; }
+  /* Antes de que app.js aplique el layout vertical no debe haber scroll lateral. */
+  #topology { min-width: 0; }
+  /* Centrado real: el padding horizontal del contenedor era asimétrico (18/8). */
+  .topo-scroll { padding: 12px 8px 8px; }
   .workload-tools { width: 100%; }
   .workload-tools input { flex: 1; width: auto; }
 }
@@ -745,10 +762,6 @@ main { position: relative; z-index: 1; }
   .dash-tech { margin: 0 14px 14px; }
   .panel-note { display: none; }
   .topo-scroll { padding: 8px; }
-  .topo-scroll::after {
-    content: "swipe →"; display: block; text-align: right; color: var(--dim);
-    font-size: 9px; letter-spacing: .12em; text-transform: uppercase; padding: 4px 6px 0;
-  }
   .footer { padding: 0 14px 32px; }
   .drawer-panel { width: 100vw; }
 }

@@ -177,9 +177,13 @@
             </marker>
           </defs>
 
-          <g class="topo-grid" aria-hidden="true">
+          <g class="topo-grid topo-grid-h" aria-hidden="true">
             <path d="M0 60 H1100 M0 130 H1100 M0 200 H1100 M0 270 H1100 M0 340 H1100"/>
             <path d="M110 0 V430 M220 0 V430 M330 0 V430 M440 0 V430 M550 0 V430 M660 0 V430 M770 0 V430 M880 0 V430 M990 0 V430"/>
+          </g>
+          <g class="topo-grid topo-grid-v" aria-hidden="true">
+            <path d="M0 60 H420 M0 130 H420 M0 200 H420 M0 270 H420 M0 340 H420 M0 410 H420 M0 480 H420 M0 550 H420 M0 620 H420 M0 690 H420"/>
+            <path d="M70 0 V720 M140 0 V720 M210 0 V720 M280 0 V720 M350 0 V720"/>
           </g>
 
           <g class="topo-links" aria-hidden="true">
@@ -188,11 +192,11 @@
             <path id="link-ingress" class="link" d="M 560 215 C 585 215, 605 215, 640 215" marker-end="url(#arrow)"/>
             <path id="link-backup" class="link link-dash" d="M 870 300 C 900 330, 920 350, 935 368" marker-end="url(#arrow)"/>
             <path id="link-metrics" class="link link-dash" d="M 700 310 C 685 335, 655 350, 625 365" marker-end="url(#arrow)"/>
-            <text x="155" y="202" class="link-label">HTTPS</text>
-            <text x="374" y="202" class="link-label">QUIC</text>
-            <text x="583" y="202" class="link-label">HTTP</text>
-            <text x="918" y="345" class="link-label">daily</text>
-            <text x="638" y="340" class="link-label">scrape</text>
+            <text id="lbl-https" x="155" y="202" class="link-label">HTTPS</text>
+            <text id="lbl-tunnel" x="374" y="202" class="link-label">QUIC</text>
+            <text id="lbl-ingress" x="583" y="202" class="link-label">HTTP</text>
+            <text id="lbl-daily" x="918" y="345" class="link-label">daily</text>
+            <text id="lbl-scrape" x="638" y="340" class="link-label">scrape</text>
           </g>
 
           <g class="topo-node tone-ok clickable" id="topo-browser" data-node="browser" tabindex="0" role="button" aria-label="Tu navegador" transform="translate(28,180)">
@@ -217,7 +221,7 @@
 
           <g class="topo-cluster clickable" id="topo-cluster" data-node="cluster" tabindex="0" role="button" aria-label="Cluster de Kubernetes">
             <rect class="cluster-box" x="640" y="90" width="400" height="220" rx="16"/>
-            <text x="660" y="116" class="cluster-title">k3s cluster</text>
+            <text id="topo-cluster-title" x="660" y="116" class="cluster-title">k3s cluster</text>
             <text x="1020" y="116" text-anchor="end" class="cluster-sub" id="topo-cluster-sub">3 nodes</text>
 
             <g class="topo-node tone-ok" id="topo-node0" data-node="node0" tabindex="0" role="button" aria-label="cluster0" transform="translate(660,132)">

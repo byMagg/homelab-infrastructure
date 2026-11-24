@@ -701,6 +701,7 @@ const state = {
   drawer: null,
   hiddenSeries: new Set(),
   hashScrolled: false,
+  topoVertical: false,
 };
 
 const params = new URLSearchParams(location.search);
@@ -1052,9 +1053,150 @@ function shortName(name, max = 9) {
   return name.length > max ? `${name.slice(0, max - 1)}…` : name;
 }
 
+// La topología se dibuja una sola vez y se recoloca con estas dos tablas:
+// horizontal de escritorio (1100x430) y vertical para móvil/tablet (420x720).
+// En vertical el cluster sigue con los tres nodos en fila, así que no hay que
+// tocar el marcado ni duplicar ids.
+const TOPO_LAYOUTS = {
+  horizontal: {
+    viewBox: '0 0 1100 430',
+    cluster: { x: 640, y: 90, width: 400, height: 220 },
+    nodes: {
+      'topo-browser': [28, 180],
+      'topo-edge': [210, 170],
+      'topo-traefik': [430, 175],
+      'topo-node0': [660, 132],
+      'topo-node1': [790, 132],
+      'topo-node2': [920, 132],
+      'topo-r2': [870, 352],
+      'topo-obs': [430, 345],
+    },
+    texts: {
+      'topo-cluster-title': [660, 116, 'start'],
+      'topo-cluster-sub': [1020, 116, 'end'],
+      'topo-pods-sub': [660, 272, 'start'],
+      'topo-workloads-sub': [1020, 272, 'end'],
+    },
+    links: {
+      'link-https': 'M 112 215 C 150 215, 175 215, 210 215',
+      'link-tunnel': 'M 360 215 C 385 215, 405 215, 430 215',
+      'link-ingress': 'M 560 215 C 585 215, 605 215, 640 215',
+      'link-backup': 'M 870 300 C 900 330, 920 350, 935 368',
+      'link-metrics': 'M 700 310 C 685 335, 655 350, 625 365',
+    },
+    labels: {
+      'lbl-https': [155, 202],
+      'lbl-tunnel': [374, 202],
+      'lbl-ingress': [583, 202],
+      'lbl-daily': [918, 345],
+      'lbl-scrape': [638, 340],
+    },
+    chips: { x: 660, y: 214, width: 58, height: 20, stride: 63, labelY: 13 },
+  },
+  vertical: {
+    viewBox: '0 0 420 705',
+    cluster: { x: 20, y: 348, width: 380, height: 210 },
+    nodes: {
+      'topo-browser': [168, 24],
+      'topo-edge': [135, 124],
+      'topo-traefik': [145, 240],
+      'topo-node0': [35, 400],
+      'topo-node1': [155, 400],
+      'topo-node2': [275, 400],
+      'topo-r2': [260, 615],
+      'topo-obs': [30, 615],
+    },
+    texts: {
+      'topo-cluster-title': [38, 374, 'start'],
+      'topo-cluster-sub': [382, 374, 'end'],
+      'topo-pods-sub': [38, 534, 'start'],
+      'topo-workloads-sub': [382, 534, 'end'],
+    },
+    links: {
+      'link-https': 'M 210 94 L 210 124',
+      'link-tunnel': 'M 210 210 L 210 240',
+      'link-ingress': 'M 210 318 L 210 348',
+      'link-backup': 'M 370 558 C 370 578, 345 590, 325 615',
+      'link-metrics': 'M 70 558 C 70 578, 105 590, 125 615',
+    },
+    labels: {
+      'lbl-https': [220, 114],
+      'lbl-tunnel': [220, 230],
+      'lbl-ingress': [220, 338],
+      'lbl-daily': [333, 597],
+      'lbl-scrape': [78, 597],
+    },
+    chips: { x: 50, y: 480, width: 50, height: 18, stride: 54, labelY: 12 },
+  },
+};
+
+const TOPO_MEDIA = '(max-width: 980px)';
+
+function topoLayout() {
+  return state.topoVertical ? TOPO_LAYOUTS.vertical : TOPO_LAYOUTS.horizontal;
+}
+
+function renderTopoApps(apps = []) {
+  const group = $('topo-apps');
+  if (!group) return;
+  const chips = topoLayout().chips;
+  const picks = ['portfolio', 'homepage', 'adguard', 'cloudflared', 'observability', 'sealed-secrets']
+    .map((name) => apps.find((app) => app.name === name))
+    .filter(Boolean)
+    .slice(0, 6);
+  group.innerHTML = picks
+    .map((app, index) => {
+      const x = chips.x + index * chips.stride;
+      return `<g class="app-chip" transform="translate(${x},${chips.y})">
+        <rect width="${chips.width}" height="${chips.height}" rx="4"/>
+        <text x="${chips.width / 2}" y="${chips.labelY}" text-anchor="middle">${esc(shortName(app.name, 8))}</text>
+      </g>`;
+    })
+    .join('');
+}
+
+function applyTopologyLayout() {
+  const svg = $('topology');
+  if (!svg) return;
+  state.topoVertical = window.matchMedia(TOPO_MEDIA).matches;
+  const layout = topoLayout();
+  svg.setAttribute('viewBox', layout.viewBox);
+  svg.classList.toggle('is-vertical', state.topoVertical);
+
+  const box = document.querySelector('#topo-cluster .cluster-box');
+  if (box) {
+    box.setAttribute('x', layout.cluster.x);
+    box.setAttribute('y', layout.cluster.y);
+    box.setAttribute('width', layout.cluster.width);
+    box.setAttribute('height', layout.cluster.height);
+  }
+  Object.entries(layout.nodes).forEach(([id, [x, y]]) => {
+    const node = $(id);
+    if (node) node.setAttribute('transform', `translate(${x},${y})`);
+  });
+  Object.entries(layout.texts).forEach(([id, [x, y, anchor]]) => {
+    const text = $(id);
+    if (!text) return;
+    text.setAttribute('x', x);
+    text.setAttribute('y', y);
+    text.setAttribute('text-anchor', anchor);
+  });
+  Object.entries(layout.links).forEach(([id, d]) => {
+    const path = $(id);
+    if (path) path.setAttribute('d', d);
+  });
+  Object.entries(layout.labels).forEach(([id, [x, y]]) => {
+    const label = $(id);
+    if (label) {
+      label.setAttribute('x', x);
+      label.setAttribute('y', y);
+    }
+  });
+  renderTopoApps((state.data && state.data.apps) || []);
+}
+
 function renderTopology(data) {
   const nodes = data.nodes || [];
-  const apps = data.apps || [];
   const summary = data.summary || {};
   const edge = data.edge || {};
   const backup = data.backup || {};
@@ -1083,21 +1225,7 @@ function renderTopology(data) {
   setText('topo-obs-sub', `Alertmanager · targets ${obs.targetsUp ?? '--'}/${obs.targetsTotal ?? '--'}`);
 
   const appsGroup = $('topo-apps');
-  if (appsGroup) {
-    const picks = ['portfolio', 'homepage', 'adguard', 'cloudflared', 'observability', 'sealed-secrets']
-      .map((name) => apps.find((app) => app.name === name))
-      .filter(Boolean)
-      .slice(0, 6);
-    appsGroup.innerHTML = picks
-      .map((app, index) => {
-        const x = 660 + index * 63;
-        return `<g class="app-chip" transform="translate(${x},214)">
-          <rect width="58" height="20" rx="4"/>
-          <text x="29" y="13" text-anchor="middle">${esc(shortName(app.name, 8))}</text>
-        </g>`;
-      })
-      .join('');
-  }
+  if (appsGroup) renderTopoApps(data.apps || []);
 }
 
 function setChip(id, text, status) {
@@ -1484,11 +1612,24 @@ function setJourneyStep(index, autoplay = false) {
       }
       state.journey.step += 1;
       renderJourney();
+      revealJourneyNode();
     }, 4500);
   }
   renderJourney();
+  revealJourneyNode();
   const section = $('como-funciona');
   if (section && autoplay) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// En vertical el dibujo es más alto que la pantalla: al avanzar el recorrido
+// acercamos la pieza resaltada para que el paso se vea sin buscar a mano.
+function revealJourneyNode() {
+  if (!state.topoVertical) return;
+  const step = JOURNEY[state.journey.step] || JOURNEY[0];
+  const target = document.querySelector(`#topology [data-node="${step.target}"]`);
+  if (target && typeof target.scrollIntoView === 'function') {
+    target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 }
 
 function stopJourney() {
@@ -1513,6 +1654,7 @@ function toggleJourney() {
     }
     state.journey.step += 1;
     renderJourney();
+    revealJourneyNode();
   }, 4500);
 }
 
@@ -1877,7 +2019,10 @@ function init() {
   let resizeTimer = null;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(renderDashboards, 180);
+    resizeTimer = setTimeout(() => {
+      applyTopologyLayout();
+      renderDashboards();
+    }, 180);
   });
 
   document.querySelectorAll('.tab-btn').forEach((btn) => {
@@ -1899,6 +2044,7 @@ function init() {
     }, 600);
   }
 
+  applyTopologyLayout();
   applyLang();
   refresh();
   loadDashboards();
