@@ -266,7 +266,7 @@ hace el rollout en ~3 min. No hay auto-merge.
 ### Qué cubre
 
 - Todos los `image:` de `kubernetes/apps/**` (AdGuard, cloudflared, Homepage,
-  Prometheus, Grafana, Alertmanager, kube-state-metrics, node-exporter,
+  Prometheus, Grafana, Alertmanager, kube-state-metrics, node-exporter, Radar,
   sealed-secrets y el `node:22-alpine` del observatorio).
 - `k3s_version` en `ansible/inventory/production/group_vars/all.yml`.
 

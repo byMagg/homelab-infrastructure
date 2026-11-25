@@ -92,8 +92,8 @@ Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
       dashboards de pods, plano de control y Traefik. *(ntfy, pods, control
       plane y Traefik el 2026-11-22; quedan AdGuard y la retención)*
 - [x] **Fase 6 — Dominio público y portfolio**: Cloudflare Tunnel,
-      `dbarroso.dev` y el CV publicado. *(túnel y 4 hostnames activos
-      2026-11-21)*
+      `dbarroso.dev` y el CV publicado. *(túnel y 5 hostnames activos
+      2026-11-25)*
 - [ ] **Fase 6b — Hardening del build**: multi-arch, Trivy, SBOM y Cosign.
       *(el tag lo actualiza Argo CD Image Updater en el cluster)*
 - [x] **Fase 7 — Backup y DR**: copias consistentes de SQLite + token, retención
@@ -104,6 +104,9 @@ Para HTTPS dentro de la LAN sigue pendiente una CA interna. Ver
 - [x] **Extra — Observatorio público**: `dbarroso.dev/live`, explicaciones en
       dos niveles, topología clicable con recorrido, fichas de workloads y
       dashboards nativos, ES/EN. *(2026-11-22)*
+- [x] **Extra — Radar**: UI de Kubernetes de solo lectura (issues, topología,
+  timeline, Helm y Argo CD) en `radar.dbarroso.dev` tras Access, con servidor
+  MCP de solo lectura. *(2026-11-25)*
 
 ## Estructura
 
@@ -122,6 +125,7 @@ docs/          Arquitectura, ADRs, runbooks, postmortems
 | [`docs/actualizaciones.md`](docs/actualizaciones.md) | Qué se actualiza solo, cuándo, y procedimiento de upgrade de k3s |
 | [`docs/fase-7.md`](docs/fase-7.md) | Backup y recuperación: SQLite, R2, restauración y drill |
 | [`docs/observatorio.md`](docs/observatorio.md) | Observatorio público: capas, API, seguridad y despliegue |
+| [`docs/radar.md`](docs/radar.md) | Radar: UI de Kubernetes de solo lectura y su MCP |
 | [`docs/adr-001-ansible-en-lugar-de-terraform.md`](docs/adr-001-ansible-en-lugar-de-terraform.md) | Por qué Ansible y no Terraform |
 
 Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
@@ -163,9 +167,9 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
   lo monitoriza y el portfolio tolera el taint (hoy tiene réplicas allí).
 - Homepage `v2.8.0` en el namespace `homepage` como panel de inicio en
   `homepage.homelab.home.arpa` (y `lab.dbarroso.dev`): agrupa Argo CD, Grafana,
-  Prometheus, AdGuard, el portfolio y el observatorio con monitorización HTTP, y
-  muestra CPU/RAM del cluster vía el widget de Kubernetes (ServiceAccount de
-  solo lectura).
+  Prometheus, AdGuard, el portfolio, el observatorio y Radar con monitorización
+  HTTP, y muestra CPU/RAM del cluster vía el widget de Kubernetes
+  (ServiceAccount de solo lectura).
 - Observatorio público: `kubernetes/apps/observatory` sirve
   `dbarroso.dev/live` con explicaciones en lenguaje claro (y detalle técnico
   visible), topología clicable, recorrido guiado de una petición, fichas de
@@ -175,8 +179,12 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
   (`?tab`, `?range`, `?node`, `?workload`). Ver `docs/observatorio.md`.
 - Fase 6 desplegada: Cloudflare Tunnel `2026.11.1` con 2 réplicas conectadas al
   borde. Publicados `dbarroso.dev` (portfolio), `lab` (Homepage), y `grafana` /
-  `argocd` con Access. `prometheus` no se publica: no tiene regla pública en el
-  `Ingress` ni public hostname.
+  `argocd` / `radar` con Access. `prometheus` no se publica: no tiene regla
+  pública en el `Ingress` ni public hostname.
+- Radar: `kubernetes/apps/radar` en `radar.homelab.home.arpa` y, tras
+  Cloudflare Access, `radar.dbarroso.dev`. UI de Kubernetes de solo lectura
+  (RBAC sin escritura, `--disable-exec`, MCP en `/mcp-readonly`) con issues,
+  topología, timeline, Helm, Argo CD y auditoría. Ver `docs/radar.md`.
 - Automatización: la Application raíz `homelab-root` (app-of-apps) gestiona
   `kubernetes/argocd/`, así que añadir una app es solo commitear su
   `*-app.yaml`. GitHub Actions ejecuta `ansible-lint` + `--syntax-check` en

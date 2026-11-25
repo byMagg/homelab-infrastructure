@@ -116,6 +116,16 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   Ingress **y** `$(MY_POD_IP):3000` para las probes. Los montajes `subPath` no
   se refrescan en caliente: al tocar `config.yaml` actualiza la anotación
   `homelab.io/config-hash` del Deployment (`sha256sum` del fichero).
+- Radar (`kubernetes/apps/radar`, `radar.homelab.home.arpa` y
+  `radar.dbarroso.dev` tras Cloudflare Access): RBAC de **solo lectura** (el
+  del chart oficial + `pods/log`, `metrics.k8s.io` y los grupos de Argo CD,
+  helm-controller, system-upgrade-controller, Traefik y Sealed Secrets). Sin
+  auth en la LAN, así que corre con `--disable-exec` y `--mcp-read-only`; el
+  endpoint bueno para agentes es `/mcp-readonly`, nunca `/mcp`. Valida la
+  cabecera `Host` (`--allowed-hosts`): deben estar el host del Ingress, el del
+  Service, el FQDN y el que usan las probes (`httpHeaders: Host: radar.radar`,
+  porque el kubelet manda la IP del pod). El timeline vive en memoria y se
+  pierde al reiniciar; una sola réplica a propósito. Ver `docs/radar.md`.
 - Cloudflare Tunnel (`namespace cloudflared`): el token va en el Secret
   `cloudflared-token` (clave `token`; la *variable* sí se llama
   `TUNNEL_TOKEN`), **nunca** en los `args` del
@@ -193,13 +203,18 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `docs/fase-5.md`.
 - Panel de inicio: Homepage `v2.8.0` en `kubernetes/apps/homepage` (namespace
   `homepage`), en `homepage.homelab.home.arpa`; enlaza Argo CD, Grafana,
-  Prometheus, AdGuard, el portfolio y el observatorio.
+  Prometheus, AdGuard, el portfolio, el observatorio y Radar.
+- Radar: `kubernetes/apps/radar` (namespace `radar`), en
+  `radar.homelab.home.arpa` y `radar.dbarroso.dev` (detrás de Cloudflare
+  Access). UI de Kubernetes de solo lectura con issues, topología, timeline,
+  Helm, Argo CD y auditoría, más un servidor MCP en `/mcp-readonly`. Ver
+  `docs/radar.md`.
 - Fase 6 desplegada: Cloudflare Tunnel (`kubernetes/apps/cloudflared`, 2
   réplicas) conectado al borde con el dominio `dbarroso.dev`. Public hostnames
-  activos: raíz (portfolio), `lab` (Homepage), `grafana` y `argocd` (estos dos
-  detrás de Cloudflare Access). **Prometheus no se publica** (decisión): no
-  tiene regla pública en el `Ingress` ni public hostname, y su UI no tiene
-  autenticación.
+  activos: raíz (portfolio), `lab` (Homepage), y `grafana`, `argocd` y `radar`
+  (estos tres detrás de Cloudflare Access). **Prometheus no se publica**
+  (decisión): no tiene regla pública en el `Ingress` ni public hostname, y su
+  UI no tiene autenticación.
   Sin cert-manager: el TLS público lo termina Cloudflare. Ver `docs/fase-6.md`.
 - Fase 7 completada: backup SQLite diario en `/var/backups/k3s` (4 copias) y
   réplica en R2 (`homelab/k3s`, 14 días) con credenciales en el SealedSecret

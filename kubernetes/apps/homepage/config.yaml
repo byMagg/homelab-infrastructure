@@ -69,6 +69,11 @@ data:
             href: https://dbarroso.dev/live
             description: Vista pública en vivo de todas las capas
             siteMonitor: http://observatory.observatory.svc.cluster.local/healthz
+        - Radar:
+            icon: https://raw.githubusercontent.com/skyhook-io/radar/main/radar-icon.svg
+            href: https://radar.dbarroso.dev
+            description: Qué está roto y por qué: issues, topología y timeline
+            siteMonitor: http://radar.radar.svc.cluster.local:9280/api/health
 
     - Observabilidad:
         - Grafana:

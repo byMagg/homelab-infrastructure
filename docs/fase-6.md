@@ -83,14 +83,15 @@ En la pestaña *Public Hostname* del túnel, una entrada por servicio:
 | `grafana` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
 | `prometheus` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
 | `argocd` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
+| `radar` | `dbarroso.dev` | | `http://traefik.kube-system.svc.cluster.local:80` |
 
 La raíz sirve el portfolio (`kubernetes/apps/portfolio`). Cada host publicado
 tiene su regla en el `Ingress` correspondiente, con el host interno al lado.
 
-Estado real (2026-11-21): `dbarroso.dev` y `lab.dbarroso.dev` responden `200`;
-`grafana.dbarroso.dev` y `argocd.dbarroso.dev` responden `302` hacia Cloudflare
-Access. `prometheus.dbarroso.dev` **no se publica**: su UI no tiene
-autenticación y se mantiene accesible solo desde la LAN.
+Estado real (2026-11-25): `dbarroso.dev` y `lab.dbarroso.dev` responden `200`;
+`grafana.dbarroso.dev`, `argocd.dbarroso.dev` y `radar.dbarroso.dev` responden
+`302` hacia Cloudflare Access. `prometheus.dbarroso.dev` **no se publica**: su
+UI no tiene autenticación y se mantiene accesible solo desde la LAN.
 
 El dashboard crea el CNAME proxied hacia `<uuid>.cfargotunnel.com`. **El
 Host header se conserva**, así que el `Ingress` de Kubernetes debe declarar ese

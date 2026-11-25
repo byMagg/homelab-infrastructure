@@ -47,9 +47,10 @@ que vigila. Desde 2026-11-21 las gestiona la Application raíz `homelab-root`
 | `observability` | `kubernetes/apps/observability` | `observability` |
 | `observatory` | `kubernetes/apps/observatory` | `observatory` |
 | `portfolio` | `kubernetes/apps/portfolio` | `portfolio` |
+| `radar` | `kubernetes/apps/radar` | `radar` |
 | `sealed-secrets` | `kubernetes/apps/sealed-secrets` | `sealed-secrets` |
 
-`homelab-root` es la raíz (app-of-apps); las otras nueve son hijas. La
+`homelab-root` es la raíz (app-of-apps); las otras diez son hijas. La
 Application `image-updater` vive en `argocd` porque vigila la Application
 `portfolio`, no un namespace propio.
 
