@@ -1,0 +1,51 @@
+# Argo CD gestionando su propia instalación (self-managed).
+#
+# La crea `homelab-root` a partir de este directorio; no hay que aplicarla a
+# mano. A partir del primer sync, el estado deseado de Argo CD vive en
+# `kubernetes/apps/argocd`: versión fijada y `server.insecure` incluidos.
+#
+# Ojo: si esta Application se rompe, Argo no puede arreglarse a sí mismo. La
+# recuperación es `scripts/bootstrap-argocd.sh` (idempotente).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git@github.com:byMagg/homelab-infrastructure.git
+    targetRevision: main
+    path: kubernetes/apps/argocd
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      # Sin prune a propósito: un fallo de render no debe poder borrar el
+      # propio Argo CD. Si el manifiesto upstream elimina un recurso, se borra
+      # a mano.
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # El CRD de ApplicationSet no cabe en client-side apply (límite de la
+      # anotación last-applied-configuration).
+      - ServerSideApply=true
+    retry:
+      # El sync reinicia argocd-server, repo-server y el controller a mitad de
+      # operación: sin retry, el primer intento queda en SyncFailed.
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    # El controller rellena `server.secretkey` y `admin.password` en
+    # argocd-secret. Sin esto, la app queda OutOfSync para siempre y selfHeal
+    # reintenta en bucle.
+    - group: ""
+      kind: Secret
+      name: argocd-secret
+      jsonPointers:
+        - /data

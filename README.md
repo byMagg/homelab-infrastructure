@@ -145,7 +145,8 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
 - Fase 2 completada: Argo CD `v3.6.1` sincroniza las apps del repo privado con
   deploy key de solo lectura; UI en `argocd.homelab.home.arpa` (y
   `argocd.dbarroso.dev` detrás de Access). La app `whoami` de esta fase se
-  retiró el 2026-11-19; hoy el ejemplo desplegado es el portfolio.
+  retiró el 2026-11-19; hoy el ejemplo desplegado es el portfolio. Desde el
+  2026-11-25 Argo CD se autogestiona desde `kubernetes/apps/argocd`.
 - Fase 3 completada: AdGuard Home `v0.107.80` en el namespace `adguard`, DNS
   en `192.168.1.100:53` vía ServiceLB, reescritura
   `*.homelab.home.arpa` → `192.168.1.100` y UI en
@@ -187,9 +188,10 @@ Las fases están documentadas en `docs/fase-0.md` … `docs/fase-7.md`.
   topología, timeline, Helm, Argo CD y auditoría. Ver `docs/radar.md`.
 - Automatización: la Application raíz `homelab-root` (app-of-apps) gestiona
   `kubernetes/argocd/`, así que añadir una app es solo commitear su
-  `*-app.yaml`. GitHub Actions ejecuta `ansible-lint` + `--syntax-check` en
-  cada cambio de `ansible/`, y Argo CD Image Updater actualiza el tag del
-  portfolio solo (sin secretos ni cron).
+  `*-app.yaml`. Argo CD se autogestiona desde `kubernetes/apps/argocd` y
+  Renovate vigila su tag. GitHub Actions ejecuta `ansible-lint` +
+  `--syntax-check` en cada cambio de `ansible/`, y Argo CD Image Updater
+  actualiza el tag del portfolio solo (sin secretos ni cron).
 - Reconstrucción 2026-11-17: cluster0 y cluster2 reflasheados, Fase 0/1
   reaplicadas, cluster1 reincorporado con el token nuevo y Argo CD + apps
   resincronizadas.

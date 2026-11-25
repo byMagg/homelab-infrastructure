@@ -1,0 +1,16 @@
+# Argo CD gestionándose a sí mismo (self-managed).
+#
+# La base es el manifiesto oficial del tag fijado: no se vendoriza
+# `install.yaml` (37k líneas) para que un cambio de versión sea un diff de una
+# línea. Renovate vigila el tag de la URL.
+#
+# El manifiesto base no lleva `metadata.namespace`: los objetos aterrizan en
+# `argocd` por el destino de la Application (y `-n argocd` en el bootstrap).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.6.1/manifests/install.yaml
+
+patches:
+  - path: cmd-params.yaml

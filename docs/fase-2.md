@@ -4,6 +4,10 @@
 > directorio (`kubernetes/apps/whoami`) ya no existe. El flujo de Argo CD que
 > se describe aquí sigue vigente; el ejemplo actual es
 > `kubernetes/apps/portfolio`.
+>
+> Desde 2026-11-25 Argo CD se **autogestiona**: la instalación vive en
+> `kubernetes/apps/argocd` y ya no se aplica el `install.yaml` a mano. El
+> bootstrap es `scripts/bootstrap-argocd.sh`; ver `docs/despliegue.md`.
 
 Fecha: 2026-11-17
 Argo CD: `v3.6.1`
@@ -165,6 +169,7 @@ kubectl -n argocd port-forward svc/argocd-server 8080:80
 5. **ServiceLB publica en todas las IPs de los nodos.** El Ingress muestra
    `192.168.1.100,192.168.1.101`; el DNS local apunta a `.100` por simplicidad.
 
-6. **`--insecure` no está en `install.yaml`.** Si se reaplica el manifiesto de
-   Argo CD, el deployment vuelve a arrancar en modo TLS y el Ingress deja de
-   funcionar. Hay que repetir el `kubectl patch` después de reinstalar.
+6. **`--insecure` no está en `install.yaml`.** Ya no se aplica con
+   `kubectl patch`: vive en `kubernetes/apps/argocd/cmd-params.yaml`
+   (`argocd-cmd-params-cm` → `server.insecure: "true"`), dentro de la
+   Application `argocd`. Si se reinstala Argo, el valor llega solo.

@@ -10,12 +10,12 @@ Hay cuatro relojes distintos en el homelab. Tres son automáticos:
 | Manifiestos de Kubernetes | ~3 min tras `git push` | Argo CD | Rollout automático |
 | Imágenes de las apps | PR semanal | Renovate (merge manual) | Rollout automático |
 | Tag del portfolio | ~2 min tras el build | Image Updater | Rollout automático |
-| Argo CD | Manual | reaplicar manifiesto upstream | Sí |
+| Argo CD | PR semanal | Renovate (merge manual) | Sí, sus pods |
 | Backup del datastore | Diario a las 03:15 | `k3s-backup.timer` | No |
 
 Lo que **no** existe: auto-merge de Renovate, auto-upgrade de k3s,
 auto-reboot, salto de versión mayor de Debian ni actualización automática de
-Argo CD.
+Argo CD (Renovate abre el PR del tag; el sync lo hace Argo).
 
 ## 1. Nodos: `unattended-upgrades`
 
@@ -245,10 +245,11 @@ que quedó instalada.
 - Excepción: el **portfolio**. `argocd-image-updater` mira GHCR cada ~2 min y
   parchea `spec.source.kustomize.images` de la Application. Ese tag vive en el
   cluster y el app-of-apps lo ignora (`ignoreDifferences`). No lo edites a mano.
-- **Argo CD** no se autogestiona: se instaló con el manifiesto de
-  `docs/fase-2.md`. Para actualizarlo, reaplica el `install.yaml` del tag nuevo
-  con `kubectl apply --server-side --force-conflicts` (los CRDs grandes fallan
-  con `apply` normal).
+- **Argo CD** se autogestiona: la Application `argocd` sincroniza
+  `kubernetes/apps/argocd`, cuya base remota es el `install.yaml` del tag
+  fijado. Para actualizarlo, fusiona el PR de Renovate (o cambia el tag a
+  mano): Argo aplica su propio manifiesto y reinicia sus componentes. No se
+  reaplica nada con `kubectl`.
 - `sealed-secrets` y `kubeseal` deben ir **a la par**: si subes el controller,
   sube también la versión de `kubeseal` que uses en el portátil.
 
@@ -269,6 +270,9 @@ hace el rollout en ~3 min. No hay auto-merge.
   Prometheus, Grafana, Alertmanager, kube-state-metrics, node-exporter, Radar,
   sealed-secrets y el `node:22-alpine` del observatorio).
 - `k3s_version` en `ansible/inventory/production/group_vars/all.yml`.
+- El tag de Argo CD en la base remota de
+  `kubernetes/apps/argocd/kustomization.yaml` (la Application `argocd` aplica
+  el `install.yaml` de ese tag).
 
 ### Qué no cubre (a propósito)
 
@@ -276,7 +280,6 @@ hace el rollout en ~3 min. No hay auto-merge.
 |---|---|
 | `kubernetes/apps/portfolio/**` | Lo gobierna Image Updater (ver abajo) |
 | `kubernetes/apps/image-updater/**` | La imagen y los CRD son una unidad; se suben juntos a mano |
-| Versión de Argo CD | Solo está en la documentación; se instala con el manifiesto upstream |
 | Acciones de GitHub | Con `GITHUB_TOKEN` no se pueden modificar workflows; son dos y se suben a mano |
 | Ejecutar el upgrade de k3s | Renovate solo cambia `group_vars`; el procedimiento es la sección 2 |
 
@@ -351,7 +354,7 @@ npm/pip, se puede activar en paralelo sin conflicto.
 | Revisar avisos de Alertmanager (backup, nodos, disco) | Continuo |
 | Revisar y fusionar PRs de Renovate | Semanal |
 | Subir k3s un minor | Cuando salga release estable, con ventana |
-| Actualizar Argo CD | Cuando haya CVE o feature necesaria |
+| Actualizar Argo CD | Al fusionar el PR de Renovate, con ventana |
 | Probar una restauración del backup | Tras cada cambio de versión de k3s |
 
 ## Ver también

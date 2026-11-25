@@ -73,8 +73,12 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   entradas estáticas que reclamen la misma IP.
 - UFW permite puertos del cluster solo desde `192.168.1.0/24`; un cambio de
   puerto en k3s exige actualizar `ansible/roles/common/tasks/main.yml`.
-- Argo CD: los CRDs grandes fallan con `kubectl apply` normal; reinstalar con
-  `kubectl apply --server-side --force-conflicts`.
+- Argo CD se **autogestiona** (`kubernetes/apps/argocd`, Application `argocd`):
+  la base es remota (`install.yaml` del tag) y `server.insecure` vive en
+  `cmd-params.yaml`, no en un `kubectl patch`. Es la única app con
+  `prune: false` y con `ignoreDifferences` en `/data` de `argocd-secret`. Si
+  queda inservible, `scripts/bootstrap-argocd.sh` (idempotente) reinstala y
+  adopta. Los CRDs grandes siguen necesitando server-side apply.
 - AdGuard Home escucha la UI en el puerto **80** del pod (se eligió en el
   asistente). Probes, `containerPort` y Service deben apuntar a 80; si apuntan
   a 3000 el pod nunca queda `Ready` y el DNS se queda sin endpoints.
@@ -145,7 +149,8 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   `SealedSecret` quedan indescifrables. `kubeseal` debe ir con la misma versión
   que el controller (`v0.41.2`). El cifrado está atado a namespace + nombre.
   `repo-homelab` sigue siendo bootstrap manual porque Argo lo necesita para
-  leer el repo (igual que `homelab-root`, que se aplica una vez con `kubectl`).
+  leer el repo; lo crea `scripts/bootstrap-argocd.sh`, igual que
+  `homelab-root`.
 - Image Updater (`kubernetes/apps/image-updater`, namespace `argocd`): usa
   `writeBackConfig.method: argocd`, así que **no** necesita credenciales de
   Git ni rotar claves. Parchea `spec.source.kustomize.images` de la Application
@@ -176,7 +181,9 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
 ## Estado y convenciones
 
 - Fases 0, 1 y 2 completadas: k3s `v1.37.2+k3s1` (flannel, Traefik, ServiceLB,
-  local-path) y Argo CD `v3.6.1` gestionando las apps de `kubernetes/`.
+  local-path) y Argo CD `v3.6.1` gestionando las apps de `kubernetes/`; desde
+  el 2026-11-25 Argo CD también se gestiona a sí mismo
+  (`kubernetes/apps/argocd`).
 - Fase 3 completada: AdGuard Home `v0.107.80` en `kubernetes/apps/adguard`
   (namespace `adguard`), DNS en `192.168.1.100:53` vía ServiceLB y UI en
   `adguard.homelab.home.arpa`. La UI escucha en el puerto **80** del pod. El

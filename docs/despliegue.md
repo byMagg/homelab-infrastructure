@@ -30,7 +30,7 @@ editas kubernetes/apps/portfolio/deployment.yaml
                     └─ aplica el diff → rollout → pods nuevos
 ```
 
-### Las diez Applications
+### Las once Applications
 
 Cada fichero `kubernetes/argocd/*-app.yaml` declara **una** app y la carpeta
 que vigila. Desde 2026-11-21 las gestiona la Application raíz `homelab-root`
@@ -40,6 +40,7 @@ que vigila. Desde 2026-11-21 las gestiona la Application raíz `homelab-root`
 |---|---|---|
 | `homelab-root` | `kubernetes/argocd` | `argocd` |
 | `adguard` | `kubernetes/apps/adguard` | `adguard` |
+| `argocd` | `kubernetes/apps/argocd` | `argocd` |
 | `cloudflared` | `kubernetes/apps/cloudflared` | `cloudflared` |
 | `homepage` | `kubernetes/apps/homepage` | `homepage` |
 | `image-updater` | `kubernetes/apps/image-updater` | `argocd` |
@@ -50,7 +51,7 @@ que vigila. Desde 2026-11-21 las gestiona la Application raíz `homelab-root`
 | `radar` | `kubernetes/apps/radar` | `radar` |
 | `sealed-secrets` | `kubernetes/apps/sealed-secrets` | `sealed-secrets` |
 
-`homelab-root` es la raíz (app-of-apps); las otras diez son hijas. La
+`homelab-root` es la raíz (app-of-apps); las otras once son hijas. La
 Application `image-updater` vive en `argocd` porque vigila la Application
 `portfolio`, no un namespace propio.
 
@@ -73,6 +74,38 @@ syncPolicy:
 Deployment con `kubectl edit`, Argo lo devuelve a lo declarado. Si borras un
 objeto, lo recrea. Cada app es independiente: puedes romper una sin tocar las
 demás.
+
+La única excepción es `argocd`, que se gestiona a sí misma y por eso lleva una
+política más conservadora:
+
+- `prune: false`: un fallo de render no debe poder borrar el propio Argo CD.
+- `ServerSideApply=true`: el CRD de ApplicationSet no cabe en client-side apply.
+- `ignoreDifferences` sobre `/data` de `argocd-secret`: el controller rellena
+  ahí la clave de firma y la contraseña de `admin`, y sin ignorarlo la app
+  quedaría `OutOfSync` para siempre.
+
+### Argo CD se gestiona a sí mismo
+
+`kubernetes/apps/argocd` declara la instalación completa. El `kustomization.yaml`
+usa como base remota el manifiesto oficial del tag fijado:
+
+```yaml
+resources:
+  - https://raw.githubusercontent.com/argoproj/argo-cd/v3.6.1/manifests/install.yaml
+patches:
+  - path: cmd-params.yaml   # argocd-cmd-params-cm: server.insecure: "true"
+```
+
+Consecuencias:
+
+- **Actualizar Argo CD** = fusionar el PR de Renovate que cambia el tag. No se
+  reaplica nada a mano.
+- El `--insecure` que la Fase 2 aplicaba con `kubectl patch` vive ahora en
+  `cmd-params.yaml`; ya no se pierde al reaplicar el manifiesto.
+- La primera sync puede dar conflicto de *field manager* si los recursos se
+  crearon a mano. Se fuerza una vez desde la UI (SYNC → Force).
+- Si Argo CD queda inservible, Git no puede rescatarlo: se relanza
+  `scripts/bootstrap-argocd.sh`, que es idempotente.
 
 ### Ciclo completo de un cambio
 
@@ -103,11 +136,32 @@ Para deshacer: `git revert <commit>` y push. Argo aplica el estado anterior.
 2. Commit y push. La Application raíz `homelab-root` detecta el fichero y crea
    la `Application` sola.
 
-`homelab-root` es un **app-of-apps**: vigila `kubernetes/argocd/` y se aplicó a
-mano una única vez (`kubectl apply -f kubernetes/argocd/root-app.yaml`), igual
-que `repo-homelab`. Si se borra una Application hija, se recrea; si se quita un
-`*-app.yaml` de Git, se elimina la Application (sus workloads quedan huérfanos,
-porque las apps hijas no llevan finalizer de cascada).
+`homelab-root` es un **app-of-apps**: vigila `kubernetes/argocd/` y se aplica
+una única vez en el bootstrap (`kubectl apply -f kubernetes/argocd/root-app.yaml`),
+igual que `repo-homelab`. Ambas cosas las hace ahora
+`scripts/bootstrap-argocd.sh`; ver «Bootstrap de Argo CD» abajo. Si se borra
+una Application hija, se recrea; si se quita un `*-app.yaml` de Git, se elimina
+la Application (sus workloads quedan huérfanos, porque las apps hijas no llevan
+finalizer de cascada).
+
+### Bootstrap de Argo CD
+
+Es el único punto que no puede ser declarativo: Argo CD no puede instalarse a
+sí mismo desde cero. Después de reconstruir `cluster0`:
+
+```bash
+scripts/bootstrap-argocd.sh
+```
+
+Hace, en orden y de forma idempotente: crea el namespace `argocd`, aplica
+`kubernetes/apps/argocd` en modo server-side (con la versión y el
+`server.insecure` de Git), espera a los componentes, crea el Secret
+`repo-homelab` con `~/.ssh/argocd_homelab` (si no existe) y aplica la app raíz.
+A partir de ahí, la Application `argocd` adopta la instalación y el resto lo
+gestiona Git.
+
+La deploy key se puede pasar con `ARGOCD_SSH_KEY=/ruta/a/la/clave`. Si el
+Secret ya existe no se toca.
 
 ## Pipeline de nodos: manual por diseño
 
@@ -159,7 +213,7 @@ Lo que **hoy** requiere intervención humana, y dónde está el motivo:
 | `bootstrap.yml` | Por nodo | Necesita la contraseña de `admin` |
 | Aplicar Fase 0/1 | Cuando cambia | Decisión: control sobre cambios peligrosos |
 | Reinicio tras Fase 0 | Obligatorio | Aplica EEPROM, `config.txt`, watchdog |
-| `repo-homelab` (deploy key de Argo) | Solo al reconstruir Argo | Argo lo necesita para leer el repo |
+| `repo-homelab` (deploy key de Argo) | Solo al reconstruir Argo | Argo lo necesita para leer el repo; lo crea `scripts/bootstrap-argocd.sh` |
 | Public hostnames en Cloudflare | Al añadir host | Sin provider de Terraform; activos raíz, `lab`, `grafana`, `argocd`. Prometheus no se publica por decisión |
 
 ## Integración continua
@@ -207,6 +261,7 @@ son del portfolio) es manual y está en
 | 2 | Tag de imagen manual | **Resuelto**: `argocd-image-updater` actualiza el tag en el cluster, sin credenciales |
 | 3 | Sin webhook | Abierto: hasta ~3 min de polling; opcional |
 | 4 | Sin CI en Ansible | **Resuelto**: `ansible.yml` (lint + sintaxis) |
+| 5 | Argo CD fuera de Git | **Resuelto**: Application `argocd` (self-managed); bootstrap en `scripts/bootstrap-argocd.sh` |
 
 Lo que **no** conviene automatizar: aplicar Ansible desde el cluster. Añade un
 punto único de fallo justo cuando la infraestructura está rota.
@@ -238,6 +293,7 @@ estado real de los workloads: `Healthy`, `Progressing`, `Degraded`.
 |---|---|
 | `OutOfSync` que no se corrige | Manifiesto inválido o recurso con dueño distinto; mira el diff en la UI |
 | App `Unknown` | El repo no se puede leer: revisa la deploy key `repo-homelab` |
+| `argocd` en `SyncFailed` por conflicto de field manager | Campos tocados a mano (p. ej. el viejo arg `--insecure`): SYNC → Force una vez |
 | `ErrImagePull` / `401 Unauthorized` | Imagen privada en GHCR; el paquete debe ser público o usar `imagePullSecret` |
 | Cambio en ConfigMap que no se refleja | Montaje `subPath` no se refresca: actualiza la anotación de hash y reinicia |
 | `Secret` no se recrea tras cambiar el `SealedSecret` | El controller no adopta secrets creados a mano: bórralo y espera |

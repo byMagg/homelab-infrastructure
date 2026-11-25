@@ -1,0 +1,15 @@
+# `server.insecure` sustituye al `kubectl patch ... --insecure` manual de la
+# Fase 2. El `install.yaml` ya cablea esta clave como `ARGOCD_SERVER_INSECURE`
+# en el Deployment de `argocd-server`, así que no hay que tocar los `args`.
+#
+# Traefik termina HTTP y el Ingress apunta al puerto 80 del servidor. Si algún
+# día se instala cert-manager y TLS interno, cambia el valor a "false" aquí.
+#
+# Sin `metadata.namespace` a propósito: el manifiesto base tampoco la lleva y un
+# parche estratégico con namespace no encontraría el target.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-cmd-params-cm
+data:
+  server.insecure: "true"

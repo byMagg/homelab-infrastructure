@@ -52,6 +52,19 @@
       "depNameTemplate": "k3s-io/k3s",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "description": "Tag de Argo CD en la base remota de Kustomize",
+      "managerFilePatterns": [
+        "/^kubernetes/apps/argocd/kustomization\\.yaml$/"
+      ],
+      "matchStrings": [
+        "raw\\.githubusercontent\\.com/argoproj/argo-cd/(?<currentValue>v[^/]+)/"
+      ],
+      "depNameTemplate": "argoproj/argo-cd",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ]
 }
