@@ -72,7 +72,7 @@ data:
         - Radar:
             icon: https://raw.githubusercontent.com/skyhook-io/radar/main/radar-icon.svg
             href: https://radar.dbarroso.dev
-            description: Qué está roto y por qué: issues, topología y timeline
+            description: "Qué está roto y por qué: issues, topología y timeline"
             siteMonitor: http://radar.radar.svc.cluster.local:9280/api/health
 
     - Observabilidad:

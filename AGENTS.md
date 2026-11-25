@@ -115,7 +115,9 @@ journald en RAM. No ejecutes `firewall`/`ssh` a la vez que `base` sin motivo.
   valida la cabecera `Host` (`HOMEPAGE_ALLOWED_HOSTS`): incluye el host del
   Ingress **y** `$(MY_POD_IP):3000` para las probes. Los montajes `subPath` no
   se refrescan en caliente: al tocar `config.yaml` actualiza la anotación
-  `homelab.io/config-hash` del Deployment (`sha256sum` del fichero).
+  `homelab.io/config-hash` del Deployment (`sha256sum` del fichero). Un `: `
+  sin comillas dentro de un `description` rompe `services.yaml` ("bad
+  indentation of a mapping entry"): entrecomilla el valor.
 - Radar (`kubernetes/apps/radar`, `radar.homelab.home.arpa` y
   `radar.dbarroso.dev` tras Cloudflare Access): RBAC de **solo lectura** (el
   del chart oficial + `pods/log`, `metrics.k8s.io` y los grupos de Argo CD,
