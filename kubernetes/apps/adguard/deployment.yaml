@@ -55,6 +55,8 @@ spec:
               memory: 64Mi
             limits:
               memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
       volumes:
         - name: work
           persistentVolumeClaim:

@@ -23,7 +23,6 @@ spec:
       # hostNetwork expone el puerto 9100 en la IP del nodo; Prometheus lo
       # descubre por pod (la IP del pod es la del nodo).
       hostNetwork: true
-      hostPID: true
       dnsPolicy: ClusterFirstWithHostNet
       tolerations:
         - operator: Exists
