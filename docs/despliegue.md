@@ -102,8 +102,9 @@ Consecuencias:
   reaplica nada a mano.
 - El `--insecure` que la Fase 2 aplicaba con `kubectl patch` vive ahora en
   `cmd-params.yaml`; ya no se pierde al reaplicar el manifiesto.
-- La primera sync puede dar conflicto de *field manager* si los recursos se
-  crearon a mano. Se fuerza una vez desde la UI (SYNC → Force).
+- **La primera sync adopta** los recursos que se crearon a mano en la Fase 2:
+  `ServerSideApply` fuerza los conflictos de *field manager*, así que no hay
+  que borrar ni recrear nada.
 - Si Argo CD queda inservible, Git no puede rescatarlo: se relanza
   `scripts/bootstrap-argocd.sh`, que es idempotente.
 
@@ -293,7 +294,6 @@ estado real de los workloads: `Healthy`, `Progressing`, `Degraded`.
 |---|---|
 | `OutOfSync` que no se corrige | Manifiesto inválido o recurso con dueño distinto; mira el diff en la UI |
 | App `Unknown` | El repo no se puede leer: revisa la deploy key `repo-homelab` |
-| `argocd` en `SyncFailed` por conflicto de field manager | Campos tocados a mano (p. ej. el viejo arg `--insecure`): SYNC → Force una vez |
 | `ErrImagePull` / `401 Unauthorized` | Imagen privada en GHCR; el paquete debe ser público o usar `imagePullSecret` |
 | Cambio en ConfigMap que no se refleja | Montaje `subPath` no se refresca: actualiza la anotación de hash y reinicia |
 | `Secret` no se recrea tras cambiar el `SealedSecret` | El controller no adopta secrets creados a mano: bórralo y espera |

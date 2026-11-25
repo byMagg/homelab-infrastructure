@@ -66,10 +66,4 @@ Listo. Argo CD se adopta a sí mismo con la Application 'argocd' y crea el
 resto de apps de kubernetes/argocd/. Sigue el progreso con:
 
   kubectl -n $NAMESPACE get applications
-
-Si la primera sync de 'argocd' falla con un conflicto de field manager (campos
-que se tocaron a mano con kubectl, como el viejo arg --insecure), fuerza el sync
-una vez desde la UI (SYNC -> Force) o con el CLI:
-
-  argocd app sync argocd --force
 EOF
