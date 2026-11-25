@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: radar
+  namespace: radar
+spec:
+  ingressClassName: traefik
+  rules:
+    # Solo red interna. Para publicarlo en dbarroso.dev hacen falta dos pasos
+    # más que no viven en este repo: la public hostname en el dashboard de
+    # Cloudflare Tunnel y una política de Cloudflare Access (igual que grafana
+    # y argocd), más la regla de host en este Ingress.
+    - host: radar.homelab.home.arpa
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: radar
+                port:
+                  name: http

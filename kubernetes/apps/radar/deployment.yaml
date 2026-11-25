@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: radar
+  namespace: radar
+  labels:
+    app.kubernetes.io/name: radar
+spec:
+  # Radar guarda en memoria su caché de informers y el búfer del timeline: dos
+  # réplicas darían dos vistas distintas, no alta disponibilidad.
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: radar
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: radar
+    spec:
+      serviceAccountName: radar
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: radar
+          image: ghcr.io/skyhook-io/radar:1.21.4
+          args:
+            - --port=9280
+            - --listen-address=0.0.0.0
+            - --no-browser
+            # Radar valida la cabecera Host. Incluye el del Ingress y el del
+            # Service (el que mandan las probes).
+            - --allowed-hosts=radar.homelab.home.arpa,radar.radar,localhost,127.0.0.1
+            # El timeline vive en memoria: se pierde al reiniciar el pod, pero
+            # evita un PVC y el modo sqlite.
+            - --timeline-storage=memory
+            - --history-limit=10000
+            # Sin auth (solo red local) se apagan las funciones que ejecutan
+            # cosas en el cluster o escriben en él.
+            - --disable-exec
+            - --mcp-read-only
+          ports:
+            - name: http
+              containerPort: 9280
+              protocol: TCP
+          env:
+            # Telemetría anónima fuera: no hay nada que reportar.
+            - name: RADAR_USAGE_REPORTING
+              value: "off"
+            # El rootfs es de solo lectura; Helm necesita sus directorios.
+            - name: HELM_CACHE_HOME
+              value: /tmp/helm/cache
+            - name: HELM_CONFIG_HOME
+              value: /tmp/helm/config
+            - name: HELM_DATA_HOME
+              value: /tmp/helm/data
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: radar.radar
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: radar.radar
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: home
+              mountPath: /home/nonroot
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: home
+          emptyDir: {}
