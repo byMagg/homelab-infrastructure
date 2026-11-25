@@ -6,10 +6,18 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    # Solo red interna. Para publicarlo en dbarroso.dev hacen falta dos pasos
-    # más que no viven en este repo: la public hostname en el dashboard de
-    # Cloudflare Tunnel y una política de Cloudflare Access (igual que grafana
-    # y argocd), más la regla de host en este Ingress.
+    # Público a través del túnel de Cloudflare y protegido por Cloudflare
+    # Access (la public hostname y la política viven en el dashboard, no aquí).
+    - host: radar.dbarroso.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: radar
+                port:
+                  name: http
     - host: radar.homelab.home.arpa
       http:
         paths:

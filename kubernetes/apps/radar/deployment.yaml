@@ -34,7 +34,7 @@ spec:
             - --no-browser
             # Radar valida la cabecera Host. Incluye el del Ingress y el del
             # Service (el que mandan las probes).
-            - --allowed-hosts=radar.homelab.home.arpa,radar.radar,localhost,127.0.0.1
+            - --allowed-hosts=radar.homelab.home.arpa,radar.dbarroso.dev,radar.radar,localhost,127.0.0.1
             # El timeline vive en memoria: se pierde al reiniciar el pod, pero
             # evita un PVC y el modo sqlite.
             - --timeline-storage=memory
